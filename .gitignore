@@ -1,0 +1,51 @@
+# Terraform local/cache/state (keep .terraform.lock.hcl tracked)
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.json
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.tfvars.json.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# Credentials and environment
+.env
+.env.*
+!.env.example
+!env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.oci/
+.ssh/
+credentials/
+secrets/
+# Runtime data, database backups and archives
+/volumes/
+/data/
+/backups/
+/archives/
+/artifacts/
+*.sql
+*.dump
+*.sql.gz
+*.log
+*.zip
+*.tar
+*.tar.gz
+# Local tooling
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
