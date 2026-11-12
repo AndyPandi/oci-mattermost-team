@@ -4,6 +4,32 @@ OCI PoC 관계자들의 대화와 자료 공유를 위한 Mattermost 협업 환�
 
 이 저장소는 Oracle 또는 Mattermost의 공식 Marketplace 상품이 아닙니다.
 
+## Deploy to Oracle Cloud
+
+### 현재 비공개 개발 단계 — ZIP 직접 업로드
+
+[![Deploy to Oracle Cloud — ZIP 직접 업로드](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create)
+
+이 버튼은 OCI 로그인 후 **스택 생성 화면**을 엽니다. 저장소를 자동으로 가져오거나 즉시 VM을 생성하지 않습니다.
+
+1. GitHub 로그인 상태에서 이 저장소의 **Code → Download ZIP**으로 소스를 내려받습니다.
+2. 위 버튼을 누르고 **My configuration → ZIP 업로드**로 파일을 선택합니다. ZIP 최상위 폴더 안에 Terraform 파일이 있으면 콘솔의 작업 디렉터리를 해당 폴더로 지정합니다.
+3. 아래 절차대로 입력·Plan 검토 후 Apply합니다. 실제 콘솔 화면·VM 배포는 아직 검증 전입니다.
+
+CLI를 사용할 수 있다면 저장소 루트에서 다음 명령으로 커밋된 파일만 담은 루트형 ZIP을 만들 수 있습니다. 미커밋 파일은 포함되지 않습니다.
+
+```sh
+git archive --format=zip --output=../oci-mattermost-team.zip HEAD
+```
+
+### 저장소 공개 전환 후 — 소스 자동 불러오기
+
+[![Deploy to Oracle Cloud — 공개 저장소 자동 불러오기](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https%3A%2F%2Fgithub.com%2FAndyPandi%2Foci-mattermost-team%2Farchive%2Frefs%2Fheads%2Fmain.zip)
+
+**이 자동 불러오기 버튼은 비공개 상태에서는 사용할 수 없습니다.** GitHub 웹 로그인이나 이 개발 VM의 deploy key는 OCI Resource Manager에 전달되지 않습니다. 저장소를 공개하기 전에는 위 ZIP 업로드 방식을 사용하세요. 토큰을 URL에 넣지 마세요.
+
+공개 후에는 버튼 → OCI 로그인 → 소스 불러오기 → 설정 입력 → Plan 검토 → Apply 순서입니다. 현재 링크는 main의 최신 코드를 사용하므로 실행 전 변경 내용을 확인하고, 안정 릴리스 후에는 검증된 태그/커밋 ZIP으로 고정할 예정입니다. 버튼 전체 경로는 공개 후 별도 검증해야 합니다.
+
 ## 문서 안내
 - [구현 상태·다음 단계·검증 체크리스트](docs/project-state.md) — 배포 가능 여부는 이 문서를 확인하세요.
 - [구조 안내](docs/architecture/system-overview.md)
@@ -21,7 +47,7 @@ OCI PoC 관계자들의 대화와 자료 공유를 위한 Mattermost 협업 환�
 ## 개발용 Resource Manager 사용 흐름
 구현/미검증 범위는 [현재 상태](docs/project-state.md)를 먼저 확인하세요. 아래는 운영자 절차이며 자동 Apply 승인이 아닙니다.
 
-1. 저장소 권한이 있는 사용자가 소스를 ZIP으로 내려받아 Resource Manager → Create stack → My configuration에 업로드합니다. 루트에 *.tf와 schema.yaml, compose.yaml, cloud-init/이 함께 있어야 합니다. .terraform, state, 실제 tfvars/키를 포함하지 마세요. 비공개 저장소에 익명 Deploy 버튼은 제공하지 않습니다.
+1. 저장소 권한이 있는 사용자가 소스를 ZIP으로 내려받아 Resource Manager → Create stack → My configuration에 업로드합니다. 루트에 *.tf와 schema.yaml, compose.yaml, cloud-init/이 함께 있어야 합니다. .terraform, state, 실제 tfvars/키를 포함하지 마세요. 비공개 단계에서는 위 ZIP 직접 업로드 버튼을 사용합니다.
 2. Terraform 1.5 이상 런타임을 선택하고 이름, compartment/AD, x86_64 shape, OCPU/RAM을 입력합니다. Oracle Linux9와 50 GiB boot는 안내만 표시되며 변경 입력은 없습니다. 기본 1 OCPU/8 GiB는 잠정값입니다.
 3. SSH 공개키와 신뢰 CIDR(/24–/32, 권장 /32)을 입력합니다. 0.0.0.0/0는 거부됩니다. 신규 VCN 또는 같은 compartment의 기존 VCN/subnet을 선택합니다.
 4. ephemeral / reserved_new / none과 private IP auto/manual을 선택합니다. 기존 reserved IP는 지원하지 않습니다. none은 기존 VPN/bastion/SSH 경로와 DNS·NAT 등 인터넷 egress를 먼저 준비해야 합니다. 신규 private-only는 거부됩니다. 기존 보안 목록은 NSG와 합산되므로 별도 검토하세요.
