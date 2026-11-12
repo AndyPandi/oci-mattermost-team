@@ -6,8 +6,9 @@
 다양한 OCI PoC를 수행하는 관계자에게 반복 배포 가능한 협업 환경을 제공한다. PoC 종료 시 채널별 TXT + 첨부파일을 일괄 다운로드한다. 다른 Mattermost로 import하는 것은 사용자 목표가 아니다.
 
 ## 현재 구현
-- 1단계 문서·저장소 기반 구성: README, 문서 라우팅, 설계 ADR, 검증 체크리스트, .gitignore.
-- Terraform, schema.yaml, Compose, VM 초기화, 아카이빙 도구는 **아직 구현하지 않음**. 배포 및 기능 테스트도 미실행.
+- 2단계 코드: Terraform root/provider lock, 조건부 Resource Manager schema, Oracle Linux bootstrap, SSH localhost Compose, mock/정적 검사. **실제 Apply·VM 배포·기능 테스트는 미실행**.
+- 입력: 이름/compartment/AD/shape/OCPU/RAM/SSH key/제한 CIDR, 신규·기존 네트워크, ephemeral·새 reserved·공인 IP 없음, private IP 자동·수동. OS/50 GiB는 변경 불가 안내.
+- 기존 reserved IP adoption, HTTPS/Caddy, TXT+첨부파일 아카이브는 미구현. 기존 IP는 변경/삭제하지 않음.
 - 기존 Marketplace 인스턴스는 본 저장소 구현 검증 결과가 아님.
 
 ## 확정한 요구사항
@@ -19,21 +20,24 @@
 - 아카이브는 채널별 TXT + 첨부파일, 메시지와 파일 관계·작성자·시간·스레드 보존. DM/비공개 반출은 별도 승인.
 
 ## 현재 우선순위
-1. 기본 문서 검토 후 2단계 구현 착수.
-2. Oracle Linux Docker 설치 경로, 이미지 아키텍처/버전, 50GB 부트 최소 조건 확인.
-3. 신규 네트워크 + SSH 터널 최소 배포 구현·검증 후 HTTPS/기존 네트워크/아카이브 확장.
+1. 별도 승인 후 Resource Manager UI 렌더링과 실제 Plan/Apply, Oracle Linux9 Docker/SELinux/healthcheck 실증.
+2. 신규/기존/새 reserved/no-public 네트워크, 재부팅·데이터 유지·백업 복원 검증.
+3. HTTPS 및 채널 TXT+첨부파일 아카이브 단계 구현.
 
 ## 알려진 제약·미결정
-- 이미지 태그/digest, PostgreSQL 버전과 데이터 마운트 경로, Shape/CPU 아키텍처 미확정. upstream 예제 기본값을 자동 채택하지 않는다.
+- Team Edition 11.7.0 amd64와 PostgreSQL 17.9-alpine을 실제 registry manifest digest로 고정했다. PG17 경로는 /var/lib/postgresql/data. ARM/A1 제외.
+- Docker 공식 설치 문서는 RHEL9 대상이다. Oracle Linux9 적용 코드의 실제 설치/SELinux 동작은 아직 검증하지 못했다. Docker RPM 버전과 최신 OL9 이미지 선택은 mutable이며 변경 Plan/패키지 검토가 필요하다.
+- 기존 subnet의 DNS/egress/SSH 경로와 합산 security list는 운영자가 보장해야 한다. no-public은 기존 VPN/bastion 및 NAT 등 outbound 경로 필수, 신규 private-only는 거부한다.
+- quota/shape capacity/미사용 private IP는 정적 검사로 보장하지 않는다. schema 공식 JSON 구조 검증은 통과했지만 실제 OCI Console 렌더링 검증은 별개다.
 - 도메인 및 ACME 검증 방식 미확정. 앱 IP 제한과 CA 검증을 분리하여 갱신 경로 유지 필요.
 - 50GB에 OS·이미지·DB·첨부파일·로그·아카이브 임시 공간이 모두 포함된다.
 - 비공개 ZIP은 익명 배포 버튼에서 다운로드할 수 있다고 가정하지 않는다. 개발 중 ZIP 업로드/인증 Git 경로를 검증하고 공개 후 버튼 E2E 검사.
 - Team Edition mmctl export 범위는 버전별 실측 필요. TXT 변환은 기존 도구 또는 API 검토 후 선정. 유료 compliance export와 구분.
-- 자체 프로젝트 공개 라이선스 및 원본 Compose 복제 방식 미결정. 현재 상위 소스는 복사하지 않았다.
+- 자체 프로젝트 공개 라이선스는 미결정. Compose는 독립 작성했고 upstream 소스는 복사하지 않았다. SSH deploy key로 push 가능 여부는 확인 가능하지만 GitHub 공개/비공개 설정 자체를 조회한 증거는 아니다.
 
 ## 검증 체크리스트
 완료 표시에는 명령/버전/결과 근거를 남긴다.
-- [ ] Terraform fmt/validate 및 Resource Manager schema 입력 검증
+- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 15건, YAML/shell/내장 Python/변수 일치 검사 통과. 공식 RM schema(Draft7) 정적 검증 통과. 실제 Console UI는 미검증.
 - [ ] Oracle Linux 이미지 50GB 부트 지원, 파일시스템 사용 가능 용량 확인
 - [ ] Team Edition 빌드·버전 확인, 기본 Enterprise 이미지 오사용 방지
 - [ ] 신규/기존 네트워크 경로, 기존 자원 불변 확인
@@ -48,4 +52,4 @@
 - [ ] 공개 전 비밀/내부 정보/라이선스 검토 및 README 버튼 전체 배포 검증
 
 ## 기술 부채
-배포 코드가 없는 설계 단계다. 문서만으로 기능 완료를 주장하지 않는다.
+실제 VM E2E, PG 최소권한 계정 분리, 지속 디스크 모니터링/첨부파일 용량 정책, OS/RPM 완전 재현성, 외부 백업 복원 검증이 남아 있다. 최초 디스크 여유 검사는 지속 모니터링이 아니다.

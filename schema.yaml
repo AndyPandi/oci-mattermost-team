@@ -1,0 +1,108 @@
+schemaVersion: 1.1.0
+version: '0.2.0'
+locale: en
+title: PoC collaboration — Mattermost Team Edition
+description: 'SSH tunnel only. Fixed Oracle Linux 9 x86_64 and 50 GiB boot disk; no additional volumes. Apply does not prove application readiness. Review costs and backup before destroy.'
+variableGroups:
+  - title: 'Compute — fixed Oracle Linux 9 / 50 GiB boot storage (not editable)'
+    variables: [region, compartment_ocid, availability_domain, instance_name, shape, ocpus, memory_in_gbs]
+  - title: SSH access
+    variables: [ssh_public_key, ssh_ingress_cidr]
+  - title: Network and IP allocation
+    variables: [network_mode, public_ip_mode, private_ip_mode, private_ip]
+  - title: Existing network — read-only, bring working egress and SSH access
+    visible: {eq: ['${network_mode}', existing]}
+    variables: [existing_vcn_id, existing_subnet_id, existing_network_ready]
+variables:
+  region:
+    type: oci:identity:region:name
+    title: Region
+    required: true
+  compartment_ocid:
+    type: oci:identity:compartment:id
+    title: Compartment
+    required: true
+  availability_domain:
+    type: oci:identity:availabilitydomain:name
+    title: Availability domain
+    required: true
+    dependsOn: {compartmentId: '${compartment_ocid}'}
+  instance_name:
+    type: string
+    title: Instance name
+    required: true
+    default: poc-mattermost
+  shape:
+    type: enum
+    title: x86_64 Flex shape
+    description: ARM/A1 excluded by Team Edition image. Availability and limits checked at Plan; quotas/capacity only at launch.
+    enum: [VM.Standard.E4.Flex, VM.Standard.E5.Flex, VM.Standard.E6.Flex, VM.Standard3.Flex]
+    default: VM.Standard.E4.Flex
+    required: true
+  ocpus:
+    type: integer
+    title: OCPUs
+    minimum: 1
+    default: 1
+    required: true
+  memory_in_gbs:
+    type: integer
+    title: Memory (GiB)
+    description: 1 OCPU / 8 GiB is a provisional minimum, not a performance guarantee.
+    minimum: 8
+    default: 8
+    required: true
+  ssh_public_key:
+    type: string
+    title: SSH public key
+    required: true
+  ssh_ingress_cidr:
+    type: string
+    title: Trusted SSH source IPv4 CIDR (/24–/32)
+    description: Required; use your administrator public IP /32 or private-access source. Never 0.0.0.0/0.
+    required: true
+  network_mode:
+    type: enum
+    title: Network
+    enum: [new, existing]
+    default: new
+    required: true
+  public_ip_mode:
+    type: enum
+    title: Public IP
+    enum: [ephemeral, reserved_new, none]
+    default: ephemeral
+    description: 'none requires EXISTING subnet with NAT/egress and VPN/bastion/private SSH. New private-only is rejected. reserved_new belongs to this stack and is deleted on Destroy. Existing reserved IP adoption is not supported; no existing IP is reassigned or deleted.'
+    required: true
+  private_ip_mode:
+    type: enum
+    title: Private IPv4 allocation
+    enum: [auto, manual]
+    default: auto
+    required: true
+  private_ip:
+    type: string
+    title: Manual private IPv4
+    description: 'New subnet: 10.42.1.0/24. First two and last IP reserved. Must be unused; syntax/containment cannot prove availability. Clear before switching to auto.'
+    visible: {eq: ['${private_ip_mode}', manual]}
+    required: true
+  existing_vcn_id:
+    type: oci:core:vcn:id
+    title: Existing VCN
+    dependsOn: {compartmentId: '${compartment_ocid}'}
+    required: true
+  existing_subnet_id:
+    type: oci:core:subnet:id
+    title: Existing subnet
+    dependsOn: {compartmentId: '${compartment_ocid}', vcnId: '${existing_vcn_id}'}
+    required: true
+  existing_network_ready:
+    type: boolean
+    title: I verified egress, DNS, SSH path, and shared security rules
+    description: 'We add an owned NSG but never edit shared lists/routes. Existing list rules are additive and can permit wider SSH. No public IP requires VPN/bastion plus NAT or equivalent internet egress for bootstrap.'
+    default: false
+    required: true
+outputs:
+  ssh_host: {type: string, title: SSH host}
+  access_instructions: {type: string, title: Readiness and tunnel instructions}
+  selected_image_name: {type: string, title: Selected Oracle Linux image}
