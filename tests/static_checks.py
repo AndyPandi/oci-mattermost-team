@@ -1,5 +1,8 @@
-"""Offline structural checks. Requires PyYAML; never executes guest bootstrap."""
+"""Offline structural checks. Requires PyYAML and jsonschema; never executes guest bootstrap."""
 import ast
+import copy
+import json
+from jsonschema import Draft7Validator
 import pathlib
 import re
 import subprocess
@@ -10,8 +13,8 @@ schema = yaml.safe_load((root / 'schema.yaml').read_text())
 variables = set(re.findall(r'variable "([^"]+)"', (root / 'variables.tf').read_text()))
 assert variables == set(schema['variables'])
 assert variables == {v for g in schema['variableGroups'] for v in g['variables']}
-for ref in re.findall(r'${(w+)}', (root / 'schema.yaml').read_text()):
-    assert ref in variables, ref
+for ref in re.findall(r'\$\{([\w.]+)\}', (root / 'schema.yaml').read_text()):
+    assert ref in variables or ref == 'session.region', ref
 assert 'readOnly:' not in (root / 'schema.yaml').read_text()
 compose = yaml.safe_load((root / 'compose.yaml').read_text())
 mm = compose['services']['mattermost']
@@ -35,3 +38,31 @@ main = (root / 'main.tf').read_text()
 assert re.search(r'boot_volume_size_in_gbs\s*=\s*50', main)
 assert not re.search(r'resource "oci_core_(volume|volume_attachment|boot_volume)"', main)
 print('PASS: variable/schema consistency, conditional references, Compose safety, shell and embedded Python syntax, fixed boot-only storage')
+
+# Official control definitions are checked directly: Oracle's published full meta
+# schema defines sshPublicKeyVariable but omits it from dynamicVariable.oneOf.
+meta = json.loads((root / 'tests/fixtures/orm-controls-meta.json').read_text())
+controls = {'region': 'regionVariable', 'availability_domain': 'availabilityDomainVariable',
+            'existing_vcn_id': 'vcnVariable', 'existing_subnet_id': 'subnetVariable',
+            'ssh_public_key': 'sshPublicKeyVariable'}
+for name, definition in controls.items():
+    validator = Draft7Validator(dict(meta, **{'$ref': '#/definitions/' + definition}))
+    validator.validate(schema['variables'][name])
+    if name in ('availability_domain', 'existing_vcn_id', 'existing_subnet_id'):
+        # Do not silently invent an unsupported region dependency. See research.
+        for key in ('region', 'regionName'):
+            candidate = copy.deepcopy(schema['variables'][name])
+            candidate['dependsOn'][key] = '${region}'
+            assert not validator.is_valid(candidate), (name, key)
+assert schema['variables']['region']['default'] == '${session.region}'
+assert schema['variables']['ssh_public_key']['additionalProps'] == {'allowMultiple': False}
+assert schema['variables']['ssh_public_key']['required'] is True
+assert 'default' not in schema['variables']['ssh_public_key']  # no array default
+assert schema['variables']['availability_domain']['dependsOn'] == {'compartmentId': '${compartment_ocid}'}
+assert schema['variables']['existing_vcn_id']['dependsOn'] == {'compartmentId': '${compartment_ocid}'}
+assert schema['variables']['existing_subnet_id']['dependsOn'] == {'compartmentId': '${compartment_ocid}', 'vcnId': '${existing_vcn_id}'}
+assert re.search(r'variable "ssh_public_key"\s*{\s*type\s*=\s*string', (root / 'variables.tf').read_text())
+assert 'ssh_authorized_keys = trimspace(var.ssh_public_key)' in main
+assert 'region = var.region' in (root / 'versions.tf').read_text()
+assert 'tls_private_key' not in main
+print('PASS: official control definitions, supported dependency keys, single public-key string, provider region')

@@ -1,4 +1,12 @@
-mock_provider "oci" {}
+mock_provider "oci" {
+  mock_data "oci_core_vcn" {
+    defaults = { compartment_id = "test-compartment" }
+  }
+}
+override_data {
+  target = data.oci_identity_availability_domains.selected_region
+  values = { availability_domains = [{ name = "test-ad" }] }
+}
 override_data {
   target = data.oci_core_images.ol9
   values = { images = [{ id = "test-image", display_name = "Oracle-Linux-9-test", size_in_mbs = 47719 }] }
@@ -109,9 +117,9 @@ run "reject_vcn_mismatch" {
   }
   override_data {
     target = data.oci_core_subnet.existing[0]
-    values = { vcn_id = "other-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "other-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
   }
-  expect_failures = [oci_core_instance.main]
+  expect_failures = [data.oci_core_subnet.existing]
 }
 
 run "reject_public_ip_prohibited" {
@@ -124,7 +132,7 @@ run "reject_public_ip_prohibited" {
   }
   override_data {
     target = data.oci_core_subnet.existing[0]
-    values = { vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = true }
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = true }
   }
   expect_failures = [oci_core_instance.main]
 }
@@ -139,7 +147,111 @@ run "reject_missing_network_confirmation" {
   }
   override_data {
     target = data.oci_core_subnet.existing[0]
-    values = { vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
   }
   expect_failures = [oci_core_instance.main]
+}
+
+run "reject_stale_region_ad" {
+  command = plan
+  override_data {
+    target = data.oci_identity_availability_domains.selected_region
+    values = { availability_domains = [{ name = "new-region-ad" }] }
+  }
+  expect_failures = [data.oci_identity_availability_domains.selected_region]
+}
+run "reject_private_ssh_key" {
+  command = plan
+  variables { ssh_public_key = "-----BEGIN OPENSSH PRIVATE KEY-----" }
+  expect_failures = [var.ssh_public_key]
+}
+run "reject_multiple_ssh_keys" {
+  command = plan
+  variables { ssh_public_key = "ssh-ed25519 AAAATest\nssh-ed25519 AAAATest" }
+  expect_failures = [var.ssh_public_key]
+}
+run "accept_public_key_file_newline" {
+  command = plan
+  variables { ssh_public_key = "ssh-ed25519 AAAATest comment\n" }
+  assert {
+    condition     = oci_core_instance.main.metadata.ssh_authorized_keys == "ssh-ed25519 AAAATest comment"
+    error_message = "Public key file must remain a trimmed Terraform string, not base64 or a list."
+  }
+}
+
+run "valid_existing_regional_subnet" {
+  command = plan
+  variables {
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+}
+
+run "valid_existing_ad_subnet" {
+  command = plan
+  variables {
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "test-ad", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+}
+
+run "reject_stale_subnet_ad" {
+  command = plan
+  variables {
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "old-region-ad", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+  expect_failures = [data.oci_core_subnet.existing]
+}
+
+run "reject_subnet_compartment" {
+  command = plan
+  variables {
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "other-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+  expect_failures = [data.oci_core_subnet.existing]
+}
+
+run "reject_vcn_compartment" {
+  command = plan
+  variables {
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+  override_data {
+    target = data.oci_core_vcn.existing[0]
+    values = { compartment_id = "other-compartment" }
+  }
+  expect_failures = [data.oci_core_vcn.existing]
 }

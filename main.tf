@@ -19,13 +19,43 @@ data "oci_core_images" "ol9" {
   sort_order               = "DESC"
   state                    = "AVAILABLE"
 }
+data "oci_identity_availability_domains" "selected_region" {
+  compartment_id = var.compartment_ocid
+  lifecycle {
+    postcondition {
+      condition     = contains([for ad in self.availability_domains : ad.name], var.availability_domain)
+      error_message = "Availability domain does not belong to the selected provider region. Reselect region and AD; do not reuse saved selections."
+    }
+  }
+}
 data "oci_core_shapes" "available" {
+  depends_on          = [data.oci_identity_availability_domains.selected_region]
   compartment_id      = var.compartment_ocid
   availability_domain = var.availability_domain
 }
 data "oci_core_subnet" "existing" {
   count     = local.new_network ? 0 : 1
   subnet_id = var.existing_subnet_id
+  lifecycle {
+    postcondition {
+      condition     = self.vcn_id == var.existing_vcn_id && self.compartment_id == var.compartment_ocid
+      error_message = "Existing subnet must belong to the selected VCN and compartment. Reselect network after changing region."
+    }
+    postcondition {
+      condition     = self.availability_domain == null || self.availability_domain == "" || self.availability_domain == var.availability_domain
+      error_message = "AD-specific subnet must match the selected availability domain; regional subnets are allowed."
+    }
+  }
+}
+data "oci_core_vcn" "existing" {
+  count  = local.new_network ? 0 : 1
+  vcn_id = var.existing_vcn_id
+  lifecycle {
+    postcondition {
+      condition     = self.compartment_id == var.compartment_ocid
+      error_message = "Existing VCN must belong to the selected compartment and be readable in the selected provider region."
+    }
+  }
 }
 resource "oci_core_vcn" "main" {
   count          = local.new_network ? 1 : 0
@@ -67,6 +97,7 @@ resource "oci_core_subnet" "main" {
   security_list_ids = [oci_core_security_list.empty[0].id]
 }
 resource "oci_core_network_security_group" "main" {
+  depends_on     = [data.oci_core_vcn.existing, data.oci_core_subnet.existing, data.oci_identity_availability_domains.selected_region]
   compartment_id = var.compartment_ocid
   vcn_id         = local.vcn_id
   display_name   = "${var.instance_name}-ssh"

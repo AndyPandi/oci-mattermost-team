@@ -1,15 +1,18 @@
 # 프로젝트 상태
 
-현재 상태의 유일한 기준 문서. 갱신: 2026-11-12.
+현재 상태의 유일한 기준 문서. 갱신: 2026-11-14.
 
 ## 목적
 다양한 OCI PoC를 수행하는 관계자에게 반복 배포 가능한 협업 환경을 제공한다. PoC 종료 시 채널별 TXT + 첨부파일을 일괄 다운로드한다. 다른 Mattermost로 import하는 것은 사용자 목표가 아니다.
 
 ## 현재 구현
-- 2단계 코드: Terraform root/provider lock, 조건부 Resource Manager schema, Oracle Linux bootstrap, SSH localhost Compose, mock/정적 검사. **실제 Apply·VM 배포·기능 테스트는 미실행**.
+- 2단계 코드: Terraform root/provider lock, 조건부 Resource Manager schema, Oracle Linux bootstrap, SSH localhost Compose, mock/정적 검사. 사용자가 Oracle Linux 9 VM에서 Compose healthy와 API OK를 확인했다고 보고했다. 이번 변경에서는 OCI 쓰기/Apply/VM SSH 없이 로컬 검사만 실행했다.
 - 입력: 이름/compartment/AD/shape/OCPU/RAM/SSH key/제한 CIDR, 신규·기존 네트워크, ephemeral·새 reserved·공인 IP 없음, private IP 자동·수동. OS/50 GiB는 변경 불가 안내.
 - 기존 reserved IP adoption, HTTPS/Caddy, TXT+첨부파일 아카이브는 미구현. 기존 IP는 변경/삭제하지 않음.
 - 기존 Marketplace 인스턴스는 본 저장소 구현 검증 결과가 아님.
+
+- SSH 입력은 native `oci:core:ssh:publickey`/단일 공개키이며 Terraform string·검증은 유지한다. native 키 생성/개인키 다운로드는 지원 근거 미확인으로 추가하지 않았다.
+- region은 Console 세션 리전을 기본값으로 사용하되 선택 가능하다. AD/VCN/subnet의 동적 리전 refresh는 공식 meta schema와 archived 예제가 충돌하여 미해결/Console 확인 대기다. compartment/VCN 필터는 유지한다. provider 리전의 AD 조회, 기존 VCN/subnet 읽기와 compartment·VCN·AD 방어를 추가했다.
 
 ## 확정한 요구사항
 - 개발은 비공개로 진행하고 구현·테스트 후 공개 전환. 저장소 공개 범위를 이 작업에서 변경하지 않음.
@@ -20,15 +23,15 @@
 - 아카이브는 채널별 TXT + 첨부파일, 메시지와 파일 관계·작성자·시간·스레드 보존. DM/비공개 반출은 별도 승인.
 
 ## 현재 우선순위
-1. 별도 승인 후 Resource Manager UI 렌더링과 실제 Plan/Apply, Oracle Linux9 Docker/SELinux/healthcheck 실증.
+1. Resource Manager SSH 컨트롤 렌더링·문자열 전달 및 Chicago→Chuncheon 목록 갱신을 실제 Console에서 확인. 필요 시 별도 승인 후 Plan/Apply; 사용자 VM 결과와 이번 폼 변경 검증을 구분.
 2. 신규/기존/새 reserved/no-public 네트워크, 재부팅·데이터 유지·백업 복원 검증.
 3. HTTPS 및 채널 TXT+첨부파일 아카이브 단계 구현.
 
 ## 알려진 제약·미결정
 - Team Edition 11.7.0 amd64와 PostgreSQL 17.9-alpine을 실제 registry manifest digest로 고정했다. PG17 경로는 /var/lib/postgresql/data. ARM/A1 제외.
-- Docker 공식 설치 문서는 RHEL9 대상이다. Oracle Linux9 적용 코드의 실제 설치/SELinux 동작은 아직 검증하지 못했다. Docker RPM 버전과 최신 OL9 이미지 선택은 mutable이며 변경 Plan/패키지 검토가 필요하다.
+- Docker 공식 설치 문서는 RHEL9 대상이다. 사용자가 Oracle Linux9 Compose healthy/API OK를 보고했지만 설치 전 과정·SELinux·재부팅/복원은 별도 실증 범위다. Docker RPM 버전과 최신 OL9 이미지 선택은 mutable이며 변경 Plan/패키지 검토가 필요하다.
 - 기존 subnet의 DNS/egress/SSH 경로와 합산 security list는 운영자가 보장해야 한다. no-public은 기존 VPN/bastion 및 NAT 등 outbound 경로 필수, 신규 private-only는 거부한다.
-- quota/shape capacity/미사용 private IP는 정적 검사로 보장하지 않는다. schema 공식 JSON 구조 검증은 통과했지만 실제 OCI Console 렌더링 검증은 별개다.
+- quota/shape capacity/미사용 private IP는 정적 검사로 보장하지 않는다. 공식 컨트롤 definition 검증과 실제 OCI Console 렌더링은 별개다. 공개 meta schema는 SSH definition을 전체 union에서 누락하고 region dependency도 허용하지 않아 전체 schema 통과/리전 자동 갱신 완료로 보고하지 않는다.
 - 도메인 및 ACME 검증 방식 미확정. 앱 IP 제한과 CA 검증을 분리하여 갱신 경로 유지 필요.
 - 50GB에 OS·이미지·DB·첨부파일·로그·아카이브 임시 공간이 모두 포함된다.
 - 비공개 ZIP은 익명 배포 버튼에서 다운로드할 수 있다고 가정하지 않는다. 개발 중 ZIP 업로드/인증 Git 경로를 검증하고 공개 후 버튼 E2E 검사.
@@ -37,7 +40,7 @@
 
 ## 검증 체크리스트
 완료 표시에는 명령/버전/결과 근거를 남긴다.
-- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 15건, YAML/shell/내장 Python/변수 일치 검사 통과. 공식 RM schema(Draft7) 정적 검증 통과. 실제 Console UI는 미검증.
+- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 24건, YAML/shell/내장 Python/변수 일치 검사 통과. 공식 RM 컨트롤별 definition(Draft7) 정적 검증 통과(전체 meta schema의 SSH union 누락은 조사 문서 참조). 실제 Console UI는 미검증.
 - [ ] Oracle Linux 이미지 50GB 부트 지원, 파일시스템 사용 가능 용량 확인
 - [ ] Team Edition 빌드·버전 확인, 기본 Enterprise 이미지 오사용 방지
 - [ ] 신규/기존 네트워크 경로, 기존 자원 불변 확인
