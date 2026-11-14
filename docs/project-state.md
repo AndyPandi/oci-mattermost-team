@@ -3,7 +3,7 @@
 현재 상태의 유일한 기준 문서. 갱신: 2026-11-14.
 
 ## 목적
-다양한 OCI PoC를 수행하는 관계자에게 반복 배포 가능한 협업 환경을 제공한다. PoC 종료 시 채널별 TXT + 첨부파일을 일괄 다운로드한다. 다른 Mattermost로 import하는 것은 사용자 목표가 아니다.
+OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자료 공유와 필요 시 별도 도구를 통한 오프라인 아카이브를 위한 배포 구성이 목적이며, 다른 Mattermost로 import하는 것은 사용자 목표가 아니다.
 
 ## 현재 구현
 - 2단계 코드: Terraform root/provider lock, 조건부 Resource Manager schema, Oracle Linux bootstrap, SSH localhost Compose, mock/정적 검사. 사용자가 Oracle Linux 9 VM에서 Compose healthy와 API OK를 확인했다고 보고했다. 이번 변경에서는 OCI 쓰기/Apply/VM SSH 없이 로컬 검사만 실행했다.
@@ -59,3 +59,7 @@
 
 ## 배포 버튼 상태
 - 한국어 README.md와 영어 README.en.md 각각에 공개용 zipUrl 자동 불러오기 버튼 하나만 제공한다. 수동 ZIP은 텍스트 대안으로 안내한다. 비공개 소스 자동 다운로드는 미지원이며 공개 범위 변경이나 토큰 노출은 하지 않았다. 링크 구조는 공식 문서 기준, 실제 로그인·콘솔·ZIP 자동 수집 E2E는 미검증.
+
+## 배포 설명과 라이선스 근거
+- 두 README와 RM 제목은 범용 OCI 배포로 안내한다. 신규 이름 기본값은 `mattermost`; 기존 스택은 저장된 이름을 유지하고 Plan을 검토한다. 기존 VCN/subnet DNS 라벨은 교체 위험을 피하려고 유지했다. 과거 ADR은 당시 배경을 보존한다.
+- 공식 Team 바이너리 MIT와 AGPL 서버 소스, Enterprise 무료 모드 계약을 구분한 [조사](research/team-edition-license.md)를 제공한다. Team 11.7.0/PG17.9 digest는 변경하지 않았다. 문서·라이선스 검토는 런타임 에디션/사용자 상한/기능 실증이 아니다. 자체 저장소 라이선스는 계속 미결정이다.

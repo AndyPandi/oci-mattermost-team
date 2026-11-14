@@ -9,7 +9,7 @@ variable "availability_domain" {
 }
 variable "instance_name" {
   type    = string
-  default = "poc-mattermost"
+  default = "mattermost"
   validation {
     condition     = can(regex("^[A-Za-z][A-Za-z0-9_-]{0,62}$", var.instance_name))
     error_message = "Use 1-63 letters, digits, underscores or hyphens, starting with a letter."

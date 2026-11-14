@@ -2,7 +2,7 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-OCI PoC 관계자들의 대화와 자료 공유를 위한 Mattermost 협업 환경을 클릭 몇 번으로 배포하는 프로젝트입니다. **Mattermost 자체를 평가하는 PoC가 아니라, 다른 PoC의 실제 협업을 돕는 도구**를 목표로 합니다.
+OCI에 Mattermost Team Edition 협업 환경을 배포하는 프로젝트입니다. 팀의 대화와 자료 공유를 위한 반복 가능한 배포 구성을 제공합니다.
 
 이 저장소는 Oracle 또는 Mattermost의 공식 Marketplace 상품이 아닙니다.
 
@@ -28,7 +28,7 @@ Console 상단 리전을 먼저 선택하세요. 입력 region만 바꾸면 AD·
 2. OCI 로그인 후 Compartment·인스턴스·네트워크·접속 모드 설정.
 3. Apply 및 VM 내부 초기 설치 완료 확인.
 4. 보호된 접속 경로에서 관리자 등록 후 관계자들과 협업.
-5. PoC 종료 시 별도 [Mattermost Archiver](https://github.com/AndyPandi/mattermost-archiver)로 대화·첨부파일을 HTML 아카이브로 변환하여 외부 보관. 본 배포에 자동 설치되는 기능은 아닙니다.
+5. 필요할 때 별도 [Mattermost Archiver](https://github.com/AndyPandi/mattermost-archiver)로 대화·첨부파일을 HTML 아카이브로 변환하여 외부 보관. 본 배포에 자동 설치되는 기능은 아닙니다.
 
 ## Resource Manager 배포 순서
 구현/미검증 범위는 [현재 상태](docs/project-state.md)를 먼저 확인하세요. 아래는 운영자 절차이며 자동 Apply 승인이 아닙니다.
@@ -50,6 +50,7 @@ sudo df -h / /srv/mattermost
 로컬 PC에서 ssh -N -L 8065:127.0.0.1:8065 opc@<ssh_host> 실행 후 http://localhost:8065 에서 최초 관리자 계정을 만듭니다. private-only는 먼저 VPN 또는 승인된 jump host를 연결하세요. 참여자별 SSH 터널이 필요하며 인터넷 공개 웹 주소가 아닙니다. bootstrap 실패 원인을 고친 뒤 sudo /usr/local/sbin/mattermost-bootstrap 으로 재시도할 수 있습니다. 기존 DB 암호는 유지합니다.
 
 ## 기존 스택 갱신과 리전 변경 주의
+- 신규 배포 이름 기본값은 `mattermost`입니다. 기존 스택은 기존 `instance_name` 값을 명시적으로 유지하세요. 이름 변경은 표시 이름 변경을 만들 수 있습니다. 내부 네트워크 DNS 라벨은 호환성을 위해 유지합니다. 이름 정리를 위해 기존 VCN/subnet을 교체하지 마세요.
 - Git push나 새 ZIP 다운로드만으로 기존 스택 설정은 바뀌지 않습니다. 기존 스택의 **Edit → Terraform configuration**에서 최신 ZIP을 다시 업로드하거나, 대상 Console 리전에서 별도 새 스택을 만드세요.
 - Console 상단 리전과 입력 region을 맞추고 compartment → AD → VCN → subnet 순으로 다시 선택하세요. Chicago에서 Chuncheon으로 입력만 바꿨을 때 목록 자동 갱신은 보장하지 않습니다. 이전 AD/네트워크 값이 남으면 진행하지 마세요.
 - 기존 저장 변수로 무심코 Apply하지 마세요. 특히 배포된 스택의 region 변경은 리전 이동 기능이 아닙니다. 새 Plan의 리전·AD·OCID·교체/삭제를 검토하세요.
@@ -74,5 +75,19 @@ python3 tests/static_checks.py
 
 OCI 자원 비용은 배포자 부담입니다. VM/부트 볼륨 삭제 전에 외부 다운로드와 열람을 확인해야 합니다. 개인키·실제 환경값·Terraform state·백업 파일은 Git에 올리지 않습니다.
 
-## 라이선스
+## Mattermost Team Edition 라이선스
+
+이 배포는 공식 **Team Edition 11.7.0** 이미지를 digest로 고정합니다. Enterprise/Entry 또는 평가판 이미지가 아닙니다.
+
+- **상용·사내 업무 운영:** 공식 Team 컴파일 배포물의 MIT 라이선스는 상업적 사용과 실제 업무 운영을 허용하며 평가·비운영 전용으로 제한하지 않습니다. OCI 비용과 운영 책임은 별개입니다.
+- **수정·재배포:** MIT 대상 배포물은 복사·수정·배포·판매할 수 있지만 모든 사본 또는 중요한 부분에 저작권 및 허가 고지를 유지해야 합니다. 무보증 조건, 포함된 제3자 라이선스 및 Mattermost 상표 정책도 확인하세요.
+- **소스는 별도:** 공식 바이너리의 MIT를 서버 소스 전체에 적용하면 안 됩니다. v11.7.0 소스 정책은 AGPLv3/상용 라이선스와 디렉터리별 Apache-2.0 예외를 구분합니다. 소스 수정·자체 빌드 시 해당 조건과 AGPL의 소스 제공 의무(수정 서버의 네트워크 사용자 포함)를 별도 검토하세요.
+- **인원·규모:** MIT 문구에는 사용자 수 제한이 없습니다. 공식 제품 문서는 Team을 활성 사용자 250명 미만의 소규모 팀에 적합하다고 설명하고 정부·민감한 상업 업무에는 권장하지 않습니다. 이는 MIT 사용권 제한이나 이 VM의 성능 보장이 아닙니다. 이 조사에서는 11.7.0의 기술적 사용자 상한을 실증하지 않았습니다.
+- **Enterprise/Entry/평가판:** Entry는 Enterprise 배포물의 무료 모드이며 Team과 다릅니다. 현재 Enterprise Free Version 계약에는 평가·테스트·비운영 전용 및 최대 100명 조건이 있습니다. 작은 팀용이라는 소개나 무료 실행만으로 업무 운영이 허용된다고 판단하지 마세요. 평가판·구독은 각 계약을 확인해야 합니다.
+- **기능:** 무료/유료 여부를 모든 API·플러그인에 일괄 적용하지 않습니다. SSO·컴플라이언스·HA·AI 등은 해당 기능의 에디션·버전·구독 조건과 별도 서비스 비용을 확인하세요. 최신 비교표는 고정 버전의 실행 검증이 아닙니다.
+
+공식 근거: [라이선스 정책](https://docs.mattermost.com/product-overview/faq-license) · [에디션 비교](https://docs.mattermost.com/product-overview/editions-and-offerings) · [유료 기능 비교](https://mattermost.com/pricing/) · [11.7.0 MIT 원문](https://github.com/mattermost/mattermost/blob/v11.7.0/server/build/MIT-COMPILED-LICENSE.md).
+[버전별 근거·계약과 문서의 차이](docs/research/team-edition-license.md)를 함께 확인하세요. 공개 문서에 근거한 설명이며 법률 자문이나 실행 실증이 아닙니다.
+
+## 저장소 자체 라이선스
 프로젝트 자체 배포 라이선스는 공개 전 확정합니다. Mattermost 이미지, PostgreSQL, Caddy 및 재사용 소스의 라이선스는 각각 별개입니다. 상위 프로젝트의 라이선스가 본 저장소 전체에 자동 적용되는 것은 아닙니다.

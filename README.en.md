@@ -2,7 +2,7 @@
 
 [한국어](README.md) · [English](README.en.md)
 
-Deploy a Mattermost collaboration environment for OCI PoC participants to discuss work and share files. This supports collaboration during other PoCs; it is not a Mattermost evaluation offering or an official Oracle/Mattermost Marketplace product.
+Deploy Mattermost Team Edition on OCI for team conversations and file sharing with a repeatable deployment configuration. This is not an official Oracle/Mattermost Marketplace product.
 
 ## Deploy to Oracle Cloud
 
@@ -42,6 +42,8 @@ Keep the tunnel open and visit http://localhost:8065 to register the first admin
 
 ## Existing stacks and region changes
 
+- The new-deployment name default is `mattermost`. Explicitly retain your existing `instance_name` when updating a stack; changing it can rename resource display names. Internal network DNS labels are retained for compatibility. Do not replace an existing VCN/subnet just to adopt new naming.
+
 - A Git push or downloaded ZIP does not update an existing stack. Upload the new configuration through Edit → Terraform configuration, or start a separate stack in the target Console region.
 - Match Console and input region, then reselect compartment → AD → VCN → subnet. Chicago-to-Chuncheon automatic list refresh is not guaranteed. Do not proceed with stale selections.
 - Changing the region of a deployed stack is not a migration feature. Review a new Plan for replacements/deletions; never blindly Apply saved variables.
@@ -52,7 +54,7 @@ Keep the tunnel open and visit http://localhost:8065 to register the first admin
 
 Mattermost Team Edition and PostgreSQL run through Docker Compose. Data is bind-mounted under /srv/mattermost on the boot filesystem; no additional Block Volume is created. OS, images, DB, files, logs and archive temporary copies share space. The 50 GiB block volume does not imply a 50 GiB root filesystem: inspect df and filesystem layout.
 
-For end-of-PoC offline HTML and attachments, use the separate [Mattermost Archiver](https://github.com/AndyPandi/mattermost-archiver). It is not automatically installed by this stack and is not a complete backup/restore solution. DM/private-channel export requires separate authorization. Verify external copies and readability before deleting VM/boot storage.
+For offline HTML archives and attachments, use the separate [Mattermost Archiver](https://github.com/AndyPandi/mattermost-archiver). It is not automatically installed by this stack and is not a complete backup/restore solution. DM/private-channel export requires separate authorization. Verify external copies and readability before deleting VM/boot storage.
 
 Never commit private keys, real environment values, Terraform state or backups. Do not share env files, full docker inspect or resolved compose configuration containing secrets. Resource costs are the deployer's responsibility.
 
@@ -78,6 +80,20 @@ These checks do not run OCI Apply; tests use mock providers. Official control-de
 - [Upstream Compose research](docs/research/upstream-compose.md)
 - [Documentation rules](docs/README.md)
 
-## License
+## Mattermost Team Edition license
+
+This deployment pins the official **Team Edition 11.7.0** image by digest, not an Enterprise/Entry or trial image.
+
+- **Commercial/internal operations:** the MIT license for the official Team compiled distribution permits commercial use and real operational use, not just evaluation/non-production. Infrastructure costs and operational responsibility remain yours.
+- **Modification/redistribution:** MIT-covered software may be copied, modified, distributed and sold, provided copyright and permission notices remain in all copies or substantial portions. Review its no-warranty terms, bundled third-party licenses and Mattermost trademark policy as well.
+- **Source is different:** do not apply the official binary's MIT license to the whole server source. The v11.7.0 source policy distinguishes AGPLv3/commercial licensing and directory-specific Apache-2.0 exceptions. Source modifications and custom builds require separate compliance review, including applicable AGPL source-offer obligations to users interacting with a modified server over a network.
+- **Users and sizing:** the MIT text has no user-count cap. Product documentation targets Team at small teams under 250 activated users and does not recommend it for government or sensitive commercial workloads. That is not an MIT usage restriction or a performance guarantee for this VM; this review did not runtime-test a technical user ceiling in 11.7.0.
+- **Enterprise/Entry/trials:** Entry is the free mode of the Enterprise distribution, not Team. The current Enterprise Free Version contract restricts use to evaluation, testing and non-production, with at most 100 end users. Small-team marketing or a running free instance does not establish production permission. Trials and subscriptions have their own terms.
+- **Features:** do not generalize free/paid entitlement to every API or plugin. Check each feature's edition, version and subscription requirements for SSO, compliance, HA, AI and other capabilities, plus external-service costs. Current comparison pages are not runtime evidence for the pinned release.
+
+Official sources: [licensing policy](https://docs.mattermost.com/product-overview/faq-license) · [edition comparison](https://docs.mattermost.com/product-overview/editions-and-offerings) · [paid-feature comparison](https://mattermost.com/pricing/) · [11.7.0 MIT text](https://github.com/mattermost/mattermost/blob/v11.7.0/server/build/MIT-COMPILED-LICENSE.md).
+See [version-specific evidence and documentation/contract differences](docs/research/team-edition-license.md). This is a public-documentation summary, not legal advice or runtime validation.
+
+## Repository license
 
 This repository's own distribution license has not been selected. Mattermost, PostgreSQL, Caddy and third-party components retain their respective licenses; upstream licenses do not automatically cover this entire repository. The separate archiver's MIT license does not license this repository.

@@ -66,3 +66,17 @@ assert 'ssh_authorized_keys = trimspace(var.ssh_public_key)' in main
 assert 'region = var.region' in (root / 'versions.tf').read_text()
 assert 'tls_private_key' not in main
 print('PASS: official control definitions, supported dependency keys, single public-key string, provider region')
+
+# Generic deployment wording must not change existing network DNS identities.
+assert schema['title'] == 'OCI deployment — Mattermost Team Edition'
+assert schema['variables']['instance_name']['default'] == 'mattermost'
+assert re.search(r'variable "instance_name"\s*{\s*type\s*=\s*string\s*default\s*=\s*"mattermost"', (root / 'variables.tf').read_text())
+assert re.search(r'dns_label\s*=\s*"pocvcn"', main)
+assert re.search(r'dns_label\s*=\s*"pocsubnet"', main)
+for filename in ('README.md', 'README.en.md'):
+    manual = (root / filename).read_text()
+    assert not re.search(r'\bpoc\b|proof.of.concept', manual, re.I)
+    assert manual.count('[![Deploy to Oracle Cloud]') == 1
+    assert 'docs/research/team-edition-license.md' in manual
+    assert 'https://docs.mattermost.com/product-overview/faq-license' in manual
+print('PASS: generic manuals, one deploy button, name defaults, preserved network DNS labels')

@@ -31,3 +31,8 @@ Destroy는 VM/부트 데이터와 새 reserved IP를 제거할 수 있다. 기�
 - [RM 입력 컨트롤 근거와 Console 확인 절차](../research/resource-manager-controls.md)
 - [공식 소스와 검증](../research/upstream-compose.md)
 - [상태 및 미검증 항목](../project-state.md)
+
+## 이름 호환성
+신규 배포의 instance_name 기본값은 `mattermost`다. 이 값은 리소스 표시 이름에 사용되며 기존 스택 갱신 시 원래 값을 명시적으로 보존한다. 신규 네트워크의 기존 DNS 라벨 상수는 변경하지 않는다. 문구 정리만으로 VCN/subnet 교체를 유발하지 않도록 DNS 이름 변경은 별도 마이그레이션으로 취급한다.
+
+- [Team Edition 라이선스 조사](../research/team-edition-license.md) — 공식 바이너리/소스/Enterprise 구분과 검증 경계.

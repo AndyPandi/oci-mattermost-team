@@ -1,7 +1,7 @@
 schemaVersion: 1.1.0
 version: '0.2.0'
 locale: en
-title: PoC collaboration — Mattermost Team Edition
+title: OCI deployment — Mattermost Team Edition
 description: 'SSH tunnel only. Fixed Oracle Linux 9 x86_64 and 50 GiB boot disk; no additional volumes. Apply does not prove application readiness. Review costs and backup before destroy.'
 variableGroups:
   - title: 'Compute — fixed Oracle Linux 9 / 50 GiB boot storage (not editable)'
@@ -33,7 +33,7 @@ variables:
     type: string
     title: Instance name
     required: true
-    default: poc-mattermost
+    default: mattermost
   shape:
     type: enum
     title: x86_64 Flex shape
