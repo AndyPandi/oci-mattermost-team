@@ -68,4 +68,4 @@ OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자
 ## 보안 보완과 검증 경계
 - 신규 DB 초기화는 mmadmin/앱 mmuser를 분리하고 앱에 NOSUPERUSER/NOCREATEDB/NOCREATEROLE/NOREPLICATION/NOBYPASSRLS를 지정한다. 두 random hex secret 및 env는 root-only 0600이며 앱에는 관리자 secret을 전달하지 않는다. 기존 DB는 자동 migration/회전/강등하지 않고 legacy·누락 secret에서 실패한다. 절차는 SECURITY.md 참조.
 - secret 생성·재실행·legacy/손상/누락 거부·SQL stdin 전달 단위검사 5건 통과. 이 호스트에는 Docker/Podman/PostgreSQL 실행기가 없어 실제 DB 초기화·Mattermost migration smoke test는 미실행이다. 기존 사용자 VM healthy 보고는 이번 계정 분리의 검증 증거가 아니다.
-- 복사한 Oracle schema fixture는 HEAD에서 제거했지만 과거 Git 이력에는 남는다. 이력 재작성/force push는 별도 승인 전 수행하지 않는다. MIT 적용은 과거 외부 자료 재라이선스나 법률적 무위험 보장이 아니다.
+- 사용자 승인 후 복사한 Oracle schema fixture의 정확한 경로만 Git 이력에서 제거하고 명시적 force-with-lease로 main을 갱신했다. 새 원격 clone의 전체 광고 refs에서 경로·기존 blob이 도달 불가임을 확인했다(원격 branch는 main 하나, tag/광고 PR ref 없음). GitHub 숨김 refs·캐시·기존 clone/fork의 물리적 삭제는 보장하지 않는다. 공개 전 서버 측 제거가 필요하면 GitHub Support에 문의하고 협업자는 재clone한다. MIT 적용은 외부 자료 재라이선스나 법률적 무위험 보장이 아니다.
