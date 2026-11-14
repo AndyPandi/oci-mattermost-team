@@ -3,7 +3,7 @@
 ## 배포 흐름
 Resource Manager가 루트 Terraform과 schema.yaml을 읽는다. region/compartment/AD와 x86_64 Flex shape를 선택하고, 호환 Oracle Linux 9 최신 AVAILABLE 이미지를 조회한다. 이미지 최소 부트 크기 50 GiB 초과와 shape 메모리/OCPU 범위 위반은 precondition에서 거부한다. 이미지 이름은 output으로 남긴다. OS 이미지는 시간에 따라 바뀌므로 변경 Plan을 반드시 검토한다.
 
-신규 네트워크는 10.42.0.0/16 VCN, 10.42.1.0/24 regional subnet, IGW, 전용 route table, 빈 security list, 전용 NSG다. NSG는 제한된 IPv4 SSH ingress와 outbound를 허용한다. 기존 네트워크는 VCN/subnet 조회와 전용 NSG 추가만 수행한다. 기존 list/route는 수정하지 않으며 합산 허용 규칙은 사용자가 점검한다. ephemeral, 새 reserved, 기존 네트워크의 no-public-IP를 지원한다. 기존 reserved IP는 가져오거나 변경하지 않는다.
+신규 네트워크는 10.42.0.0/16 VCN, 10.42.1.0/24 regional subnet, IGW, 전용 route table, 빈 security list, 전용 NSG다. NSG는 입력한 IPv4 CIDR(/0–/32)의 TCP 22 SSH ingress와 outbound를 허용한다. SSH CIDR은 기본값 없이 필수 입력이며 관리자 IP /32를 권장한다. 명시적 `0.0.0.0/0`은 모든 IPv4에 TCP 22를 허용하지만 키 인증은 여전히 필요하다. 설치 후 자동 폐쇄하지 않으며 스택 변수 `ssh_ingress_cidr`를 좁히고 Plan 검토 후 Apply해야 한다. 기존 네트워크는 VCN/subnet 조회와 전용 NSG 추가만 수행한다. 기존 list/route는 수정하지 않으며 합산 허용 규칙은 사용자가 점검한다. ephemeral, 새 reserved, 기존 네트워크의 no-public-IP를 지원한다. 기존 reserved IP는 가져오거나 변경하지 않는다.
 
 ## 폼과 리전 선택 방어
 SSH는 `oci:core:ssh:publickey`와 `additionalProps.allowMultiple: false`로 공개키 한 개를 받는다. Terraform 변수는 string이며 OpenSSH 형식 검증 후 trimspace하여 metadata로 전달한다. 개인키 생성 resource/state/output은 없다. region 기본값은 `${session.region}`, provider는 `var.region`을 사용한다.
@@ -27,6 +27,7 @@ Destroy는 VM/부트 데이터와 새 reserved IP를 제거할 수 있다. 기�
 ## 관련 문서
 - [배포 설계](../decisions/ADR-002-deployment-and-archive.md)
 - [최소 SSH 배포 결정](../decisions/ADR-003-minimum-ssh-deployment.md)
+- [SSH IPv4 전체 범위 선택 결정](../decisions/ADR-005-ssh-ipv4-cidr-choice.md)
 - [RM 입력 안전성 결정](../decisions/ADR-004-resource-manager-input-safety.md)
 - [RM 입력 컨트롤 근거와 Console 확인 절차](../research/resource-manager-controls.md)
 - [공식 소스와 검증](../research/upstream-compose.md)

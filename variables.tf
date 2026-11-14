@@ -47,10 +47,11 @@ variable "ssh_public_key" {
   }
 }
 variable "ssh_ingress_cidr" {
-  type = string
+  type        = string
+  description = "Required IPv4 CIDR /0 through /32; recommend administrator IP /32. 0.0.0.0/0 opens TCP 22 to all IPv4; SSH key authentication is still required. Access is not automatically closed after install; narrow this stack variable and run Plan then Apply."
   validation {
-    condition     = can(cidrnetmask(var.ssh_ingress_cidr)) && try(tonumber(split("/", var.ssh_ingress_cidr)[1]) >= 24, false)
-    error_message = "SSH requires a restricted IPv4 CIDR /24 through /32; 0.0.0.0/0 is forbidden."
+    condition     = can(cidrnetmask(var.ssh_ingress_cidr))
+    error_message = "SSH requires a valid IPv4 CIDR /0 through /32; IPv6 is not supported."
   }
 }
 variable "network_mode" {

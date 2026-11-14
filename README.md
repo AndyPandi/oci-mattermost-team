@@ -35,7 +35,7 @@ Console 상단 리전을 먼저 선택하세요. 입력 region만 바꾸면 AD·
 
 1. 위 Deploy to Oracle Cloud 버튼으로 공개 소스를 불러옵니다. 리전·Compartment와 Terraform 작업 디렉터리를 확인하세요. 수동 ZIP에는 *.tf, schema.yaml, compose.yaml, cloud-init/을 포함하고 .terraform, state, 실제 tfvars/키를 넣지 마세요.
 2. Terraform 1.5 이상 런타임을 선택하고 이름, compartment/AD, x86_64 shape, OCPU/RAM을 입력합니다. Oracle Linux9와 50 GiB boot는 안내만 표시되며 변경 입력은 없습니다. 기본 1 OCPU/8 GiB는 잠정값입니다.
-3. SSH 공개키 `.pub` 파일 하나를 업로드/드롭하거나 OpenSSH 공개키를 붙여넣고 신뢰 CIDR(/24–/32, 권장 /32)을 입력합니다. 개인키는 로컬에 보관하세요. 0.0.0.0/0는 거부됩니다. 신규 VCN 또는 같은 compartment의 기존 VCN/subnet을 선택합니다.
+3. SSH 공개키 `.pub` 파일 하나를 업로드/드롭하거나 OpenSSH 공개키를 붙여넣고 IPv4 CIDR(/0–/32, 권장 관리자 공인 IP /32)을 입력합니다. 개인키는 로컬에 보관하세요. `0.0.0.0/0`도 입력할 수 있지만 TCP 22를 모든 IPv4에 허용하며 SSH 키 인증은 여전히 필요합니다. 설치 후 자동으로 닫히지 않습니다. 이후 스택 변수 `ssh_ingress_cidr`를 좁은 CIDR(권장 /32)로 변경하고 Plan을 검토한 뒤 Apply하세요. 신규 VCN 또는 같은 compartment의 기존 VCN/subnet을 선택합니다.
 4. ephemeral / reserved_new / none과 private IP auto/manual을 선택합니다. 기존 reserved IP는 지원하지 않습니다. none은 기존 VPN/bastion/SSH 경로와 DNS·NAT 등 인터넷 egress를 먼저 준비해야 합니다. 신규 private-only는 거부됩니다. 기존 보안 목록은 NSG와 합산되므로 별도 검토하세요.
 5. Plan에서 자원·비용·이미지 이름·기존 네트워크 불변을 확인합니다. **별도 배포 승인 후** Apply합니다. Apply 성공은 앱 준비 완료가 아닙니다.
 6. SSH 접속 후 다음으로 상태를 확인합니다. 비밀이 포함되는 docker inspect / compose config / env 파일은 공유하지 마세요.

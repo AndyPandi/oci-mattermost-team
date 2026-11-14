@@ -80,3 +80,17 @@ for filename in ('README.md', 'README.en.md'):
     assert 'docs/research/team-edition-license.md' in manual
     assert 'https://docs.mattermost.com/product-overview/faq-license' in manual
 print('PASS: generic manuals, one deploy button, name defaults, preserved network DNS labels')
+
+# SSH IPv4 validation and required input (no world-open default).
+ssh_cidr = schema['variables']['ssh_ingress_cidr']
+assert ssh_cidr['required'] is True and 'default' not in ssh_cidr
+cidr_variable = (root / 'variables.tf').read_text().split('variable "ssh_ingress_cidr" {', 1)[1].split('variable "network_mode"', 1)[0]
+assert 'default' not in cidr_variable
+for prefix in range(33):
+    assert re.fullmatch(ssh_cidr['pattern'], f'203.0.113.1/{prefix}')
+for cidr in ('0.0.0.0/0', '255.255.255.255/32'):
+    assert re.fullmatch(ssh_cidr['pattern'], cidr)
+for cidr in ('::/0', '2001:db8::1/128', '256.1.1.1/24', '203.0.113.1/33',
+             '203.0.113.1/-1', '203.0.113.1', 'not-a-cidr', '1.2.3/24', '1.2.3.4/1.5'):
+    assert not re.fullmatch(ssh_cidr['pattern'], cidr), cidr
+print('PASS: SSH IPv4 /0–/32 schema validation, malformed/IPv6 rejection, no world-open default')

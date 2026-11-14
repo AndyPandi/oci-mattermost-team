@@ -7,10 +7,11 @@ OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자
 
 ## 현재 구현
 - 2단계 코드: Terraform root/provider lock, 조건부 Resource Manager schema, Oracle Linux bootstrap, SSH localhost Compose, mock/정적 검사. 사용자가 Oracle Linux 9 VM에서 Compose healthy와 API OK를 확인했다고 보고했다. 이번 변경에서는 OCI 쓰기/Apply/VM SSH 없이 로컬 검사만 실행했다.
-- 입력: 이름/compartment/AD/shape/OCPU/RAM/SSH key/제한 CIDR, 신규·기존 네트워크, ephemeral·새 reserved·공인 IP 없음, private IP 자동·수동. OS/50 GiB는 변경 불가 안내.
+- 입력: 이름/compartment/AD/shape/OCPU/RAM/SSH key/IPv4 CIDR(/0–/32), 신규·기존 네트워크, ephemeral·새 reserved·공인 IP 없음, private IP 자동·수동. OS/50 GiB는 변경 불가 안내.
 - 기존 reserved IP adoption, HTTPS/Caddy, TXT+첨부파일 아카이브는 미구현. 기존 IP는 변경/삭제하지 않음.
 - 기존 Marketplace 인스턴스는 본 저장소 구현 검증 결과가 아님.
 
+- SSH CIDR은 유효한 IPv4 /0–/32를 허용하고 IPv6·잘못된 CIDR은 거부한다. 필수 입력이며 기본값 없이 관리자 IP /32를 권장한다. 명시적 `0.0.0.0/0`은 TCP 22를 모든 IPv4에 허용한다. 키 인증은 유지되며 설치 후 자동 차단하지 않는다. 스택 변수 `ssh_ingress_cidr`를 좁히고 Plan 검토 후 Apply해야 한다. 별도 opt-in gate는 없다.
 - SSH 입력은 native `oci:core:ssh:publickey`/단일 공개키이며 Terraform string·검증은 유지한다. native 키 생성/개인키 다운로드는 지원 근거 미확인으로 추가하지 않았다.
 - region은 Console 세션 리전을 기본값으로 사용하되 선택 가능하다. AD/VCN/subnet의 동적 리전 refresh는 공식 meta schema와 archived 예제가 충돌하여 미해결/Console 확인 대기다. compartment/VCN 필터는 유지한다. provider 리전의 AD 조회, 기존 VCN/subnet 읽기와 compartment·VCN·AD 방어를 추가했다.
 
@@ -40,7 +41,7 @@ OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자
 
 ## 검증 체크리스트
 완료 표시에는 명령/버전/결과 근거를 남긴다.
-- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 24건, YAML/shell/내장 Python/변수 일치 검사 통과. 공식 RM 컨트롤별 definition(Draft7) 정적 검증 통과(전체 meta schema의 SSH union 누락은 조사 문서 참조). 실제 Console UI는 미검증.
+- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 34건, YAML/shell/내장 Python/변수 일치 검사 통과. 공식 RM 컨트롤별 definition(Draft7) 정적 검증 통과(전체 meta schema의 SSH union 누락은 조사 문서 참조). 실제 Console UI는 미검증.
 - [ ] Oracle Linux 이미지 50GB 부트 지원, 파일시스템 사용 가능 용량 확인
 - [ ] Team Edition 빌드·버전 확인, 기본 Enterprise 이미지 오사용 방지
 - [ ] 신규/기존 네트워크 경로, 기존 자원 불변 확인

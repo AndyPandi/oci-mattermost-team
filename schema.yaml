@@ -63,8 +63,9 @@ variables:
     required: true
   ssh_ingress_cidr:
     type: string
-    title: Trusted SSH source IPv4 CIDR (/24–/32)
-    description: Required; use your administrator public IP /32 or private-access source. Never 0.0.0.0/0.
+    title: SSH source IPv4 CIDR (/0–/32)
+    pattern: '^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(0|[1-9]|[12][0-9]|3[0-2])$'
+    description: Required; recommend administrator public IP /32 or private-access source. 0.0.0.0/0 opens TCP 22 to all IPv4; SSH key authentication is still required. Access is not automatically closed after install. Narrow ssh_ingress_cidr in stack variables, then run Plan and Apply.
     required: true
   network_mode:
     type: enum

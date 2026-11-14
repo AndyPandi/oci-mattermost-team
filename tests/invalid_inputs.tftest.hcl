@@ -22,11 +22,71 @@ variables {
   ssh_public_key      = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestOnly"
   ssh_ingress_cidr    = "203.0.113.1/32"
 }
-run "reject_world_ssh" {
+run "accept_world_ssh" {
   command = plan
-  variables {
-    ssh_ingress_cidr = "0.0.0.0/0"
+  variables { ssh_ingress_cidr = "0.0.0.0/0" }
+  assert {
+    condition     = oci_core_network_security_group_security_rule.ssh.source == "0.0.0.0/0" && oci_core_network_security_group_security_rule.ssh.protocol == "6" && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].min == 22 && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].max == 22
+    error_message = "Only TCP 22 must use the requested SSH CIDR."
   }
+}
+run "accept_broad_ssh" {
+  command = plan
+  variables { ssh_ingress_cidr = "10.0.0.0/8" }
+  assert {
+    condition     = oci_core_network_security_group_security_rule.ssh.source == "10.0.0.0/8" && oci_core_network_security_group_security_rule.ssh.protocol == "6" && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].min == 22 && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].max == 22
+    error_message = "Only TCP 22 must use the requested SSH CIDR."
+  }
+}
+run "accept_subnet_ssh" {
+  command = plan
+  variables { ssh_ingress_cidr = "203.0.113.0/24" }
+  assert {
+    condition     = oci_core_network_security_group_security_rule.ssh.source == "203.0.113.0/24" && oci_core_network_security_group_security_rule.ssh.protocol == "6" && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].min == 22 && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].max == 22
+    error_message = "Only TCP 22 must use the requested SSH CIDR."
+  }
+}
+run "accept_host_ssh" {
+  command = plan
+  variables { ssh_ingress_cidr = "203.0.113.1/32" }
+  assert {
+    condition     = oci_core_network_security_group_security_rule.ssh.source == "203.0.113.1/32" && oci_core_network_security_group_security_rule.ssh.protocol == "6" && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].min == 22 && oci_core_network_security_group_security_rule.ssh.tcp_options[0].destination_port_range[0].max == 22
+    error_message = "Only TCP 22 must use the requested SSH CIDR."
+  }
+}
+run "reject_ssh_ipv6" {
+  command = plan
+  variables { ssh_ingress_cidr = "::/0" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_ipv6_host" {
+  command = plan
+  variables { ssh_ingress_cidr = "2001:db8::1/128" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_octet" {
+  command = plan
+  variables { ssh_ingress_cidr = "256.1.1.1/24" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_prefix" {
+  command = plan
+  variables { ssh_ingress_cidr = "203.0.113.1/33" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_negative_prefix" {
+  command = plan
+  variables { ssh_ingress_cidr = "203.0.113.1/-1" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_missing_prefix" {
+  command = plan
+  variables { ssh_ingress_cidr = "203.0.113.1" }
+  expect_failures = [var.ssh_ingress_cidr]
+}
+run "reject_ssh_text" {
+  command = plan
+  variables { ssh_ingress_cidr = "not-a-cidr" }
   expect_failures = [var.ssh_ingress_cidr]
 }
 run "reject_arm" {
