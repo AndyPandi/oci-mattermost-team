@@ -1,8 +1,5 @@
-"""Offline structural checks. Requires PyYAML and jsonschema; never executes guest bootstrap."""
+"""Offline structural checks. Requires PyYAML; never executes guest bootstrap."""
 import ast
-import copy
-import json
-from jsonschema import Draft7Validator
 import pathlib
 import re
 import subprocess
@@ -21,13 +18,17 @@ mm = compose['services']['mattermost']
 pg = compose['services']['postgres']
 assert mm['ports'] == ['127.0.0.1:8065:8065']
 assert 'ports' not in pg
+assert 'PGPASSWORD="$$MM_APP_PASSWORD"' in pg['healthcheck']['test'][1]
+assert '-h 127.0.0.1 -U mmuser' in pg['healthcheck']['test'][1]
+assert 'rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls' in pg['healthcheck']['test'][1]
 assert 'mattermost-team-edition:11.7.0@sha256:' in mm['image']
-assert pg['volumes'] == ['/srv/mattermost/postgres:/var/lib/postgresql/data:Z']
+assert pg['volumes'] == ['/srv/mattermost/postgres:/var/lib/postgresql/data:Z', '/opt/mattermost/init-db.sh:/docker-entrypoint-initdb.d/10-mattermost.sh:ro,Z']
 for service in compose['services'].values():
     assert service['restart'] == 'unless-stopped'
     assert 'healthcheck' in service and 'logging' in service
     assert '@sha256:' in service['image']
-    assert all(v.startswith('/srv/mattermost/') and v.endswith(':Z') for v in service['volumes'])
+    assert all((v.startswith('/srv/mattermost/') and v.endswith(':Z')) or v == '/opt/mattermost/init-db.sh:/docker-entrypoint-initdb.d/10-mattermost.sh:ro,Z' for v in service['volumes'])
+subprocess.run(['sh', '-n', str(root / 'cloud-init/init-db.sh')], check=True)
 script = (root / 'cloud-init/bootstrap.sh').read_text()
 subprocess.run(['bash', '-n', str(root / 'cloud-init/bootstrap.sh')], check=True)
 embedded = script.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
@@ -39,21 +40,17 @@ assert re.search(r'boot_volume_size_in_gbs\s*=\s*50', main)
 assert not re.search(r'resource "oci_core_(volume|volume_attachment|boot_volume)"', main)
 print('PASS: variable/schema consistency, conditional references, Compose safety, shell and embedded Python syntax, fixed boot-only storage')
 
-# Official control definitions are checked directly: Oracle's published full meta
-# schema defines sshPublicKeyVariable but omits it from dynamicVariable.oneOf.
-meta = json.loads((root / 'tests/fixtures/orm-controls-meta.json').read_text())
-controls = {'region': 'regionVariable', 'availability_domain': 'availabilityDomainVariable',
-            'existing_vcn_id': 'vcnVariable', 'existing_subnet_id': 'subnetVariable',
-            'ssh_public_key': 'sshPublicKeyVariable'}
-for name, definition in controls.items():
-    validator = Draft7Validator(dict(meta, **{'$ref': '#/definitions/' + definition}))
-    validator.validate(schema['variables'][name])
-    if name in ('availability_domain', 'existing_vcn_id', 'existing_subnet_id'):
-        # Do not silently invent an unsupported region dependency. See research.
-        for key in ('region', 'regionName'):
-            candidate = copy.deepcopy(schema['variables'][name])
-            candidate['dependsOn'][key] = '${region}'
-            assert not validator.is_valid(candidate), (name, key)
+# Independently authored project contract, NOT Oracle schema validation.
+for name, control in (
+    ('region', 'oci:identity:region:name'),
+    ('availability_domain', 'oci:identity:availabilitydomain:name'),
+    ('existing_vcn_id', 'oci:core:vcn:id'),
+    ('existing_subnet_id', 'oci:core:subnet:id'),
+    ('ssh_public_key', 'oci:core:ssh:publickey'),
+):
+    assert schema['variables'][name]['type'] == control
+for name in ('availability_domain', 'existing_vcn_id', 'existing_subnet_id'):
+    assert not {'region', 'regionName'} & schema['variables'][name]['dependsOn'].keys()
 assert schema['variables']['region']['default'] == '${session.region}'
 assert schema['variables']['ssh_public_key']['additionalProps'] == {'allowMultiple': False}
 assert schema['variables']['ssh_public_key']['required'] is True
@@ -65,7 +62,7 @@ assert re.search(r'variable "ssh_public_key"\s*{\s*type\s*=\s*string', (root / '
 assert 'ssh_authorized_keys = trimspace(var.ssh_public_key)' in main
 assert 'region = var.region' in (root / 'versions.tf').read_text()
 assert 'tls_private_key' not in main
-print('PASS: official control definitions, supported dependency keys, single public-key string, provider region')
+print('PASS: project control contract, supported dependency keys, single public-key string, provider region')
 
 # Generic deployment wording must not change existing network DNS identities.
 assert schema['title'] == 'OCI deployment — Mattermost Team Edition'

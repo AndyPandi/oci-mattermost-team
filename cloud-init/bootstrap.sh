@@ -54,24 +54,43 @@ install -d -m 0700 /srv/mattermost/postgres
 python3 - <<'PY'
 import os, pathlib, secrets
 p = pathlib.Path('/opt/mattermost')
-secret = p / 'db-password'
-if not secret.exists():
-    if any(pathlib.Path('/srv/mattermost/postgres').iterdir()):
-        raise SystemExit('Existing DB without canonical secret; restore credentials before retry')
-    fd = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, 'w') as f:
-        f.write(secrets.token_hex(32))
-password = secret.read_text().strip()
-if len(password) != 64 or any(c not in '0123456789abcdef' for c in password):
-    raise SystemExit('Invalid canonical secret; manual recovery required')
+data = pathlib.Path('/srv/mattermost/postgres')
+names = ('db-password', 'db-admin-password')
+# Refuse legacy/partial installations before changing credentials or env files.
+if any(data.iterdir()) and not all((p / name).is_file() for name in names):
+    raise SystemExit('Existing DB lacks split credentials; see SECURITY.md. No automatic migration')
+passwords = {}
+for name in names:
+    secret = p / name
+    if secret.is_symlink():
+        raise SystemExit('Secret symlink refused')
+    if secret.exists():
+        value = secret.read_text().strip()
+        if len(value) != 64 or any(c not in '0123456789abcdef' for c in value):
+            raise SystemExit('Invalid canonical secret; manual recovery required')
+        passwords[name] = value
+for name in names:
+    secret = p / name
+    if name not in passwords:
+        passwords[name] = secrets.token_hex(32)
+        fd = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w') as f:
+            f.write(passwords[name])
+    secret.chmod(0o600)
+password = passwords['db-password']
+admin = passwords['db-admin-password']
+if password == admin:
+    raise SystemExit('Admin and application secrets must differ')
 files = {
-    'postgres.env': f'POSTGRES_USER=mmuser\nPOSTGRES_DB=mattermost\nPOSTGRES_PASSWORD={password}\n',
+    'postgres.env': f'POSTGRES_USER=mmadmin\nPOSTGRES_DB=postgres\nPOSTGRES_PASSWORD={admin}\nMM_APP_PASSWORD={password}\n',
     'mattermost.env': f'MM_SQLSETTINGS_DATASOURCE=postgres://mmuser:{password}@postgres:5432/mattermost?sslmode=disable&connect_timeout=10\n'
 }
 for name, content in files.items():
     tmp = p / (name + '.tmp')
-    with tmp.open('w') as f: f.write(content)
-    tmp.chmod(0o600)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as f:
+        os.fchmod(f.fileno(), 0o600)
+        f.write(content)
     tmp.replace(p / name)
 PY
 unit=$(mktemp)

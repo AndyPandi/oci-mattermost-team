@@ -13,14 +13,14 @@ AD 목록 data source postcondition은 선택 AD가 provider 리전에 존재하
 ## 게스트와 데이터
 cloud-init은 비밀 없는 bootstrap 및 Compose 파일을 기록한다. bootstrap은 Oracle Linux 9 x86_64, 12 GiB 여유를 확인하고 Docker RHEL9 RPM repo/GPG fingerprint를 사용한다. 기존 Docker daemon JSON은 읽고 SELinux 옵션만 병합한다. SELinux를 끄지 않으며 bind mount는 :Z로 분리한다. Docker 그룹에 일반 사용자를 추가하지 않는다.
 
-DB secret은 게스트에서 생성하여 /opt/mattermost/db-password 및 두 env 파일에 root-only로 보관한다. Terraform/state/user-data/출력/명령 인자로 전달하지 않는다. Docker root 권한과 inspect는 비밀을 볼 수 있으므로 접근을 제한한다. DB가 있는데 secret이 사라졌거나 손상됐으면 자동 재생성하지 않고 실패한다. PG 기본 초기 사용자는 superuser이므로 최소권한 DB 계정 분리는 후속 보안 작업이다.
+DB 앱 secret(db-password)과 bootstrap 관리자 secret(db-admin-password)은 게스트에서 각각 생성하여 /opt/mattermost 및 두 env 파일에 root-only 0600으로 보관한다. Terraform/state/user-data/출력/명령 인자로 전달하지 않는다. Docker root 권한과 inspect는 비밀을 볼 수 있으므로 접근을 제한한다. DB가 있는데 secret이 사라졌거나 손상됐으면 자동 재생성하지 않고 실패한다. 신규 PG 초기 사용자는 mmadmin이며 read-only init-db.sh가 mmuser LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS 및 앱 소유 mattermost DB를 만든다. 앱 DB 소유권은 migration DDL을 허용한다. 앱 env에는 관리자 secret이 없다. 기존 DB에서 split secret이 없으면 bootstrap은 env 변경 없이 거부하며 자동 계정 변경을 하지 않는다. 운영 절차는 [SECURITY.md](../../SECURITY.md)를 따른다.
 
 고정 digest의 postgres:17.9-alpine은 /srv/mattermost/postgres → /var/lib/postgresql/data, Team Edition 11.7.0은 config/files/logs/plugins/client-plugins/bleve-indexes를 /srv/mattermost 아래에서 bind mount한다. 추가 volume resource는 없다. 50 GiB는 OCI API의 GiB 단위이며 OS/이미지/DB/첨부파일을 공유한다.
 
-PostgreSQL healthcheck 후 Mattermost를 시작한다. systemd mattermost.service가 Compose --wait로 준비를 기다리고 실패 재시도하며 Docker/컨테이너 restart 정책으로 재부팅 지속성을 구성한다. VM에서의 실증 여부는 상태 문서를 따른다. json-file 로그는 서비스별 10 MiB × 3개, 앱 파일 로그는 비활성화한다. 최초 설치 공간 검사는 지속 모니터링이 아니며 첨부파일 증가를 제한하지 않는다.
+PostgreSQL TCP 앱 계정 인증·권한 flag healthcheck 후 Mattermost를 시작한다. 임시 socket-only 초기화 서버는 준비 완료로 취급하지 않는다. systemd mattermost.service가 Compose --wait로 준비를 기다리고 실패 재시도하며 Docker/컨테이너 restart 정책으로 재부팅 지속성을 구성한다. VM에서의 실증 여부는 상태 문서를 따른다. json-file 로그는 서비스별 10 MiB × 3개, 앱 파일 로그는 비활성화한다. 최초 설치 공간 검사는 지속 모니터링이 아니며 첨부파일 증가를 제한하지 않는다.
 
 ## 접속·수명
-Mattermost는 호스트 127.0.0.1:8065에만 바인딩한다. PostgreSQL은 호스트 포트가 없다. SSH -L 터널로 최초 관리자 등록과 사용을 수행한다. SiteURL은 http://localhost:8065다. 모든 참여자는 자기 터널이 필요하다. HTTPS, Caddy, 공개 웹, TXT/첨부파일 아카이브는 이 실행 경로에 포함하지 않는다.
+Mattermost는 호스트 127.0.0.1:8065에만 바인딩한다. PostgreSQL은 호스트 포트가 없다. SSH -L 터널로 최초 관리자 등록과 사용을 수행한다. SiteURL은 http://localhost:8065다. 모든 참여자는 자기 접근 경로가 필요하며 관리자 개인키를 공유하지 않는다. 개별 제한 계정은 이 스택이 자동 제공하지 않는다. HTTPS, Caddy, 공개 웹, 별도 HTML/첨부파일 아카이브는 이 실행 경로에 포함하지 않는다.
 
 Destroy는 VM/부트 데이터와 새 reserved IP를 제거할 수 있다. 기존 VCN/subnet/IP는 소유하지 않아 삭제하지 않는다. state 제거는 백업이 아니다. 사용자 다운로드와 DB의 일관된 외부 백업을 먼저 확인한다.
 

@@ -6,8 +6,11 @@ services:
     env_file: /opt/mattermost/postgres.env
     volumes:
       - /srv/mattermost/postgres:/var/lib/postgresql/data:Z
+      - /opt/mattermost/init-db.sh:/docker-entrypoint-initdb.d/10-mattermost.sh:ro,Z
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U mmuser -d mattermost']
+      # TCP avoids the temporary socket-only initialization server. Authenticate
+      # as the app and check role flags; pg_isready alone does not authenticate.
+      test: [CMD-SHELL, 'PGPASSWORD="$$MM_APP_PASSWORD" psql -h 127.0.0.1 -U mmuser -d mattermost -X -tAc "SELECT NOT (rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls) FROM pg_roles WHERE rolname = current_user" 2>/dev/null | grep -qx t']
       interval: 10s
       timeout: 5s
       retries: 30

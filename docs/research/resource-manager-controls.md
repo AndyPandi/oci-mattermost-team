@@ -23,7 +23,7 @@ Oracle 소유 예제도 조사했다:
 
 ## 테스트 범위와 upstream meta schema 결함
 
-`tests/fixtures/orm-controls-meta.json`은 위 Oracle HTML의 Meta Schema YAML을 파싱한 뒤 관련 definitions만 JSON으로 그대로 추출한 fixture다. 문서의 전체 meta schema에는 `sshPublicKeyVariable` 정의가 있지만 `dynamicVariable.oneOf`에서 참조가 누락되어 있다. **그대로의 전체 schema 통과라고 보고하지 않는다.** `tests/static_checks.py`는 각 공식 definition을 직접 참조하여 5개 컨트롤을 검증하고, region/regionName의 거부 및 기존 compartment/VCN 필터 보존을 검사한다. fixture는 Console 구현의 증명이 아니다.
+Oracle 문서에서 관찰한 meta schema에는 SSH definition의 전체 union 누락과 region dependency 제한이 있었다. 이는 문서 관찰이지 Console 구현 증명이 아니다. 과거 복사 fixture는 재배포 권한이 불명확하여 현재 소스에서 제거했다. `tests/static_checks.py`는 독립 작성한 명령형 프로젝트 계약 검사로 native SSH type/allowMultiple=false, 현재 compartment/VCN 필터, 리전 기본값·provider 연결을 보존한다. 공식 definition이나 전체 Oracle schema 검증을 수행하지 않는다. 과거 Git 이력에는 fixture가 남아 있으며 제거는 별도 승인 작업이다.
 
 Terraform mock 검사는 stale AD, VCN/subnet compartment, subnet의 VCN/AD 불일치, regional/AD-specific 정상 subnet, 공개키 문자열·파일 끝 개행·개인키/복수키 거부를 포함한다. 실제 region endpoint의 404/권한 오류나 Console의 자동 목록 갱신은 mock으로 검증할 수 없다.
 

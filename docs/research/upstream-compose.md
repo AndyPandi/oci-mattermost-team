@@ -20,7 +20,7 @@
 - 예제 DB 자격증명을 그대로 쓰지 않는다. VM에서 랜덤 생성하고 Git/state/cloud-init 로그/명령 인자에 노출하지 않는다.
 
 ## 라이선스 처리
-이번 단계에서는 상위 코드/설정 파일을 복사하지 않고 참조만 기록했다. 다음 단계에서 복제·수정 시 원본 commit, LICENSE, 관련 NOTICE 및 변경 고지를 보존한다. 프로젝트 전체 라이선스는 소유자가 공개 전에 결정한다.
+이번 단계에서는 상위 코드/설정 파일을 복사하지 않고 참조만 기록했다. 다음 단계에서 복제·수정 시 원본 commit, LICENSE, 관련 NOTICE 및 변경 고지를 보존한다. 자체 독립 작성 부분의 라이선스는 소유자 승인으로 MIT를 적용했다. 외부 소프트웨어는 THIRD_PARTY_NOTICES.md에 구분한다.
 
 ## 2단계 조사·채택 근거 (2026-11-12)
 - upstream 참조 commit: 12bbeda5009e1d8381be294a88d1cb69dc624290. LICENSE Apache-2.0 확인. 이 단계도 원본 파일을 복제하지 않고 Compose를 독립 작성했다. 원본 attribution/NOTICE를 생략한 복제물이 아니다.
@@ -30,4 +30,4 @@
 - Docker 공식 RHEL9 설치: https://docs.docker.com/engine/install/rhel/ . dnf + Docker RHEL repo, GPG fingerprint 060A61C51B558A7F742B77AAC52FEB6B621E9F35를 사용한다. Oracle Linux9 자체를 Docker의 공식 지원 배포판으로 확인한 것은 아니다. OL9에서 RHEL9 RPM 호환 적용은 배포 테스트 전제이며 실패 시 Podman 제거/SELinux 해제를 자동 수행하지 않는다.
 - OCI ap-chuncheon-1 read-only image list에서 Oracle-Linux-9.8-2026.10.30-0 (E4.Flex 호환)의 size-in-mbs=47719 확인. 50×1024 MiB 이내지만 실제 파일시스템 여유/launch 성공 증거는 아니다. 실제 compartment/image OCID는 기록하지 않았다.
 - OCI provider 7.22.0 schema 및 공식 core_images/core_shapes/core_subnet/core_public_ip 문서로 속성 검증: https://registry.terraform.io/providers/oracle/oci/7.22.0/docs
-- Resource Manager 문서 내 JSON schema를 추출하여 Draft7Validator로 form 검증했다. OS/storage는 설명과 그룹 제목에 고정 안내, 조건부 visible.eq 및 dependsOn 사용. 존재하지 않는 readOnly 속성을 쓰지 않는다: https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/terraformconfigresourcemanager_topic-schema.htm
+- 초기 조사에서는 Resource Manager 문서 schema를 추출하여 검사했으나 재배포 권한이 불명확한 fixture는 제거했다. 현재 검사는 독립 작성 프로젝트 계약이며 Oracle schema 검증이 아니다. OS/storage는 설명과 그룹 제목에 고정 안내, 조건부 visible.eq 및 dependsOn 사용. 존재하지 않는 readOnly 속성을 쓰지 않는다: https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/terraformconfigresourcemanager_topic-schema.htm

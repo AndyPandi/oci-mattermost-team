@@ -38,7 +38,7 @@ From your PC, open a tunnel:
 ssh -i "<PRIVATE_KEY_PATH>" -N -L 127.0.0.1:8065:127.0.0.1:8065 opc@<ssh_host>
 ```
 
-Keep the tunnel open and visit http://localhost:8065 to register the first administrator. Private-only deployments need VPN or an approved jump host first. Every participant needs an access path; this is not a public HTTPS website. HTTPS/Caddy is not implemented yet. After correcting bootstrap failures, an administrator can retry with sudo /usr/local/sbin/mattermost-bootstrap; existing DB credentials are retained.
+Keep the tunnel open and visit http://localhost:8065 to register the first administrator. Private-only deployments need VPN or an approved jump host first. Every participant needs an access path; this is not a public HTTPS website. HTTPS/Caddy is not implemented yet. After correcting bootstrap failures, an administrator can retry with sudo /usr/local/sbin/mattermost-bootstrap; split-role DB credentials are retained; legacy installations require the explicit maintenance procedure in [SECURITY.md](SECURITY.md), not an automatic migration.
 
 ## Existing stacks and region changes
 
@@ -60,7 +60,7 @@ Never commit private keys, real environment values, Terraform state or backups. 
 
 ## Local checks
 
-Terraform 1.7+ for mock tests (tested with 1.9.8), Python 3, PyYAML and jsonschema:
+Terraform 1.7+ for mock tests (tested with 1.9.8), Python 3, PyYAML:
 
 ```sh
 terraform init -backend=false
@@ -68,9 +68,10 @@ terraform fmt -check -recursive
 terraform validate
 terraform test
 python3 tests/static_checks.py
+python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
-These checks do not run OCI Apply; tests use mock providers. Official control-definition checks are not proof of Console rendering. Read the state document for evidence and outstanding checks, including networking, reboot/persistence and restore tests. Docker's RHEL9 installation procedure is used on Oracle Linux; do not infer certification from compatibility.
+These checks do not run OCI Apply; tests use mock providers. Independently authored project-contract checks are not official Oracle schema validation or proof of Console rendering. Read the state document for evidence and outstanding checks, including networking, reboot/persistence and restore tests. Docker's RHEL9 installation procedure is used on Oracle Linux; do not infer certification from compatibility.
 
 ## Documentation
 
@@ -96,4 +97,6 @@ See [version-specific evidence and documentation/contract differences](docs/rese
 
 ## Repository license
 
-This repository's own distribution license has not been selected. Mattermost, PostgreSQL, Caddy and third-party components retain their respective licenses; upstream licenses do not automatically cover this entire repository. The separate archiver's MIT license does not license this repository.
+This project's independently authored code, tests and documentation use the [MIT License](LICENSE), Copyright (c) 2026 AndyPandi. Third-party software, container contents and trademarks are not relicensed: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Read [SECURITY.md](SECURITY.md) before deployment or upgrades. Never share the administrator SSH private key with participants; provide individually revocable restricted access. New database initialization separates the bootstrap administrator and least-privileged application role; live PostgreSQL/Mattermost verification remains required. Digests do not pin dynamic OS/RPM selection or guarantee vulnerability-free software.

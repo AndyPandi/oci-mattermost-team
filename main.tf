@@ -147,6 +147,7 @@ resource "oci_core_instance" "main" {
     ssh_authorized_keys = trimspace(var.ssh_public_key)
     user_data = base64encode("#cloud-config\n${yamlencode({ write_files = [
       { path = "/usr/local/sbin/mattermost-bootstrap", permissions = "0700", content = file("${path.module}/cloud-init/bootstrap.sh") },
+      { path = "/opt/mattermost/init-db.sh", permissions = "0644", content = file("${path.module}/cloud-init/init-db.sh") },
       { path = "/opt/mattermost/compose.yaml", permissions = "0600", content = file("${path.module}/compose.yaml") }
     ], runcmd = [["/usr/local/sbin/mattermost-bootstrap"]] })}")
   }

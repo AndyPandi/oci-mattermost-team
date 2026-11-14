@@ -47,7 +47,7 @@ sudo docker compose -f /opt/mattermost/compose.yaml ps
 sudo df -h / /srv/mattermost
 ```
 
-로컬 PC에서 ssh -N -L 8065:127.0.0.1:8065 opc@<ssh_host> 실행 후 http://localhost:8065 에서 최초 관리자 계정을 만듭니다. private-only는 먼저 VPN 또는 승인된 jump host를 연결하세요. 참여자별 SSH 터널이 필요하며 인터넷 공개 웹 주소가 아닙니다. bootstrap 실패 원인을 고친 뒤 sudo /usr/local/sbin/mattermost-bootstrap 으로 재시도할 수 있습니다. 기존 DB 암호는 유지합니다.
+로컬 PC에서 ssh -N -L 127.0.0.1:8065:127.0.0.1:8065 opc@<ssh_host> 실행 후 http://localhost:8065 에서 최초 관리자 계정을 만듭니다. private-only는 먼저 VPN 또는 승인된 jump host를 연결하세요. 참여자별 SSH 터널이 필요하며 인터넷 공개 웹 주소가 아닙니다. bootstrap 실패 원인을 고친 뒤 sudo /usr/local/sbin/mattermost-bootstrap 으로 재시도할 수 있습니다. 분리된 DB 암호는 유지합니다. 기존 legacy DB는 자동 전환하지 않으며 SECURITY.md의 명시적 유지보수 절차가 필요합니다.
 
 ## 기존 스택 갱신과 리전 변경 주의
 - 신규 배포 이름 기본값은 `mattermost`입니다. 기존 스택은 기존 `instance_name` 값을 명시적으로 유지하세요. 이름 변경은 표시 이름 변경을 만들 수 있습니다. 내부 네트워크 DNS 라벨은 호환성을 위해 유지합니다. 이름 정리를 위해 기존 VCN/subnet을 교체하지 마세요.
@@ -58,7 +58,7 @@ sudo df -h / /srv/mattermost
 - [공식 속성 근거·문서 충돌·Apply 없는 Console 확인 절차](docs/research/resource-manager-controls.md)
 
 ## 로컬 정적 검사
-Terraform 1.7 이상(mock test; 검증 기준 1.9.8), Python3+PyYAML+jsonschema를 사용합니다.
+Terraform 1.7 이상(mock test; 검증 기준 1.9.8), Python3+PyYAML를 사용합니다.
 
 ```sh
 terraform init -backend=false
@@ -66,6 +66,7 @@ terraform fmt -check -recursive
 terraform validate
 terraform test
 python3 tests/static_checks.py
+python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
 검사는 OCI Apply를 실행하지 않습니다. 테스트는 mock provider만 사용합니다. Docker RHEL9 repo의 Oracle Linux 적용, 실제 Console 폼, 재부팅/복원은 별도 실증 관문입니다.
@@ -90,4 +91,6 @@ OCI 자원 비용은 배포자 부담입니다. VM/부트 볼륨 삭제 전에 �
 [버전별 근거·계약과 문서의 차이](docs/research/team-edition-license.md)를 함께 확인하세요. 공개 문서에 근거한 설명이며 법률 자문이나 실행 실증이 아닙니다.
 
 ## 저장소 자체 라이선스
-프로젝트 자체 배포 라이선스는 공개 전 확정합니다. Mattermost 이미지, PostgreSQL, Caddy 및 재사용 소스의 라이선스는 각각 별개입니다. 상위 프로젝트의 라이선스가 본 저장소 전체에 자동 적용되는 것은 아닙니다.
+독립 작성 코드·테스트·문서는 [MIT License](LICENSE), Copyright (c) 2026 AndyPandi를 적용합니다. 외부 이미지·패키지·상표는 별도이며 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)를 확인하세요.
+
+보안·업그레이드 전에 [SECURITY.md](SECURITY.md)를 확인하세요. 관리자 SSH 개인키를 참여자에게 공유하지 말고 개별 회수 가능한 제한 접근을 마련하세요. 신규 DB는 bootstrap 관리자와 최소권한 앱 계정을 분리합니다. 기존 설치는 자동 전환하지 않으며 별도 유지보수 절차가 필요합니다. PostgreSQL/Mattermost 실제 런타임 검증은 남아 있습니다. digest 고정은 동적 OS/RPM 선택이나 취약점 부재를 보장하지 않습니다. 테스트는 자체 프로젝트 계약 검사이며 Oracle 공식 schema 검증이 아닙니다.
