@@ -127,6 +127,9 @@ resource "oci_core_instance" "main" {
   availability_domain = var.availability_domain
   display_name        = var.instance_name
   shape               = var.shape
+  instance_options {
+    are_legacy_imds_endpoints_disabled = true
+  }
   shape_config {
     ocpus         = var.ocpus
     memory_in_gbs = var.memory_in_gbs

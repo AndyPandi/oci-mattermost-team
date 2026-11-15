@@ -100,3 +100,7 @@ See [version-specific evidence and documentation/contract differences](docs/rese
 This project's independently authored code, tests and documentation use the [MIT License](LICENSE), Copyright (c) 2026 AndyPandi. Third-party software, container contents and trademarks are not relicensed: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Read [SECURITY.md](SECURITY.md) before deployment or upgrades. Never share the administrator SSH private key with participants; provide individually revocable restricted access. New database initialization separates the bootstrap administrator and least-privileged application role; live PostgreSQL/Mattermost verification remains required. Digests do not pin dynamic OS/RPM selection or guarantee vulnerability-free software.
+
+## IMDSv2-only metadata
+
+Instances set `instance_options.are_legacy_imds_endpoints_disabled = true`; there is no opt-out. Updating GitHub does not update an existing stack or VM: upload the configuration, preserve existing inputs, **review the complete Plan, then Apply**. OCI provider 7.22.0 supports in-place updates of this option; other drift, including the latest OL9 image selection, can still cause replacement. See [impact review and read-only guest checks](SECURITY.md#imds-v2-only).

@@ -91,3 +91,11 @@ for cidr in ('::/0', '2001:db8::1/128', '256.1.1.1/24', '203.0.113.1/33',
              '203.0.113.1/-1', '203.0.113.1', 'not-a-cidr', '1.2.3/24', '1.2.3.4/1.5'):
     assert not re.fullmatch(ssh_cidr['pattern'], cidr), cidr
 print('PASS: SSH IPv4 /0–/32 schema validation, malformed/IPv6 rejection, no world-open default')
+
+# Mandatory IMDSv2 and no direct legacy metadata dependencies in guest files.
+assert re.search(r"instance_options\s*{\s*are_legacy_imds_endpoints_disabled\s*=\s*true\s*}", main)
+assert main.count("are_legacy_imds_endpoints_disabled") == 1
+for guest in [*(root / "cloud-init").iterdir(), root / "compose.yaml"]:
+    if guest.is_file():
+        assert not re.search(r"169\.254\.169\.254|/opc/v1|/openstack", guest.read_text()), guest
+print("PASS: mandatory IMDSv2, no guest legacy metadata dependencies")

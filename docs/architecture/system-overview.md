@@ -37,3 +37,6 @@ Destroy는 VM/부트 데이터와 새 reserved IP를 제거할 수 있다. 기�
 신규 배포의 instance_name 기본값은 `mattermost`다. 이 값은 리소스 표시 이름에 사용되며 기존 스택 갱신 시 원래 값을 명시적으로 보존한다. 신규 네트워크의 기존 DNS 라벨 상수는 변경하지 않는다. 문구 정리만으로 VCN/subnet 교체를 유발하지 않도록 DNS 이름 변경은 별도 마이그레이션으로 취급한다.
 
 - [Team Edition 라이선스 조사](../research/team-edition-license.md) — 공식 바이너리/소스/Enterprise 구분과 검증 경계.
+
+## 인스턴스 메타데이터 보안
+`oci_core_instance.main.instance_options.are_legacy_imds_endpoints_disabled = true`를 네트워크 모드와 무관하게 적용한다. v1 호출은 차단하고 v2 인증 헤더를 요구하며 opt-out은 없다. 자체 bootstrap/DB/Compose에는 직접 메타데이터 호출이 없다. OS agent 호환성은 별도 게스트 확인 대상이다. [ADR-007](../decisions/ADR-007-imdsv2-only.md), [영향 및 확인 절차](../../SECURITY.md#imds-v2-only)를 따른다.

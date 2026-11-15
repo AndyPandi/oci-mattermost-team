@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-현재 상태의 유일한 기준 문서. 갱신: 2026-11-14.
+현재 상태의 유일한 기준 문서. 갱신: 2026-11-15.
 
 ## 목적
 OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자료 공유와 필요 시 별도 도구를 통한 오프라인 아카이브를 위한 배포 구성이 목적이며, 다른 Mattermost로 import하는 것은 사용자 목표가 아니다.
@@ -41,7 +41,7 @@ OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자
 
 ## 검증 체크리스트
 완료 표시에는 명령/버전/결과 근거를 남긴다.
-- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 34건, YAML/shell/내장 Python/변수 일치 검사 통과. 독립 작성 RM 프로젝트 계약 검사 통과(Oracle schema 검증 아님). 실제 Console UI는 미검증.
+- [x] Terraform 1.9.8 fmt/init -backend=false/validate, OCI provider 7.22.0, mock plan 38건, YAML/shell/내장 Python/변수 일치 검사 통과. 독립 작성 RM 프로젝트 계약 검사 통과(Oracle schema 검증 아님). 실제 Console UI는 미검증.
 - [ ] Oracle Linux 이미지 50GB 부트 지원, 파일시스템 사용 가능 용량 확인
 - [ ] Team Edition 빌드·버전 확인, 기본 Enterprise 이미지 오사용 방지
 - [ ] 신규/기존 네트워크 경로, 기존 자원 불변 확인
@@ -69,3 +69,8 @@ OCI에 Mattermost Team Edition 협업 환경을 반복 배포한다. 대화·자
 - 신규 DB 초기화는 mmadmin/앱 mmuser를 분리하고 앱에 NOSUPERUSER/NOCREATEDB/NOCREATEROLE/NOREPLICATION/NOBYPASSRLS를 지정한다. 두 random hex secret 및 env는 root-only 0600이며 앱에는 관리자 secret을 전달하지 않는다. 기존 DB는 자동 migration/회전/강등하지 않고 legacy·누락 secret에서 실패한다. 절차는 SECURITY.md 참조.
 - secret 생성·재실행·legacy/손상/누락 거부·SQL stdin 전달 단위검사 5건 통과. 이 호스트에는 Docker/Podman/PostgreSQL 실행기가 없어 실제 DB 초기화·Mattermost migration smoke test는 미실행이다. 기존 사용자 VM healthy 보고는 이번 계정 분리의 검증 증거가 아니다.
 - 사용자 승인 후 복사한 Oracle schema fixture의 정확한 경로만 Git 이력에서 제거하고 명시적 force-with-lease로 main을 갱신했다. 새 원격 clone의 전체 광고 refs에서 경로·기존 blob이 도달 불가임을 확인했다(원격 branch는 main 하나, tag/광고 PR ref 없음). GitHub 숨김 refs·캐시·기존 clone/fork의 물리적 삭제는 보장하지 않는다. 공개 전 서버 측 제거가 필요하면 GitHub Support에 문의하고 협업자는 재clone한다. MIT 적용은 외부 자료 재라이선스나 법률적 무위험 보장이 아니다.
+
+## IMDSv2 강제와 검증 경계
+- main 인스턴스는 네트워크 모드에 관계없이 legacy IMDS endpoints disabled=true를 명시한다. unsafe toggle 없이 IMDSv1을 차단하며 다른 resource/image/cloud-init 설정은 불변이다.
+- Terraform mock 38/38(기존 34 + 신규 4), 정적 검사와 Python DB 5/5 통과. provider 7.22.0에서 옵션 자체는 ForceNew 없이 UpdateInstance 대상이다. 실제 기존 스택 Plan/Apply는 미실행이며 mutable 이미지 등 다른 drift의 교체 위험은 Plan으로 확인해야 한다.
+- 2026-11-15 읽기 전용 OCI 조회에서 대상 Mattermost VM은 RUNNING, 해당 옵션은 이미 true였다(기존 외부 설정, 이번 코드 적용 결과 아님). 새 VM SSH 키 부재로 설치 cloud-init/agent 버전·실제 v2 호출·앱 상태는 미검증이다. OCI 쓰기/VM 변경은 수행하지 않았다. GitHub 갱신만으로 기존 스택은 갱신되지 않으며 구성 업로드 → Plan 검토 → Apply가 필요하다.

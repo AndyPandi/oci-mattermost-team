@@ -128,6 +128,10 @@ run "reject_existing_reserved" {
 run "valid_defaults" {
   command = plan
   assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
+  assert {
     condition     = tonumber(oci_core_instance.main.source_details[0].boot_volume_size_in_gbs) == 50
     error_message = "Boot storage must remain fixed at 50 GiB."
   }
@@ -241,6 +245,10 @@ run "accept_public_key_file_newline" {
 
 run "valid_existing_regional_subnet" {
   command = plan
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
   variables {
     network_mode           = "existing"
     existing_vcn_id        = "test-vcn"
@@ -255,6 +263,10 @@ run "valid_existing_regional_subnet" {
 
 run "valid_existing_ad_subnet" {
   command = plan
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
   variables {
     network_mode           = "existing"
     existing_vcn_id        = "test-vcn"
@@ -314,4 +326,68 @@ run "reject_vcn_compartment" {
     values = { compartment_id = "other-compartment" }
   }
   expect_failures = [data.oci_core_vcn.existing]
+}
+
+run "imds_new_reserved" {
+  command = plan
+  variables {
+    public_ip_mode = "reserved_new"
+  }
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
+}
+
+run "imds_existing_reserved" {
+  command = plan
+  variables {
+    public_ip_mode         = "reserved_new"
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = false }
+  }
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
+}
+
+run "imds_existing_private_manual" {
+  command = plan
+  variables {
+    public_ip_mode         = "none"
+    network_mode           = "existing"
+    existing_vcn_id        = "test-vcn"
+    existing_subnet_id     = "test-subnet"
+    existing_network_ready = true
+    private_ip_mode        = "manual"
+    private_ip             = "10.42.1.10"
+  }
+  override_data {
+    target = data.oci_core_subnet.existing[0]
+    values = { compartment_id = "test-compartment", availability_domain = "", vcn_id = "test-vcn", cidr_block = "10.42.1.0/24", prohibit_public_ip_on_vnic = true }
+  }
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
+}
+
+run "imds_new_manual" {
+  command = plan
+  variables {
+    public_ip_mode  = "ephemeral"
+    private_ip_mode = "manual"
+    private_ip      = "10.42.1.10"
+  }
+  assert {
+    condition     = oci_core_instance.main.instance_options[0].are_legacy_imds_endpoints_disabled == true
+    error_message = "IMDSv1 must be disabled in every supported network mode."
+  }
 }

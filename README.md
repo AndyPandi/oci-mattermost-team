@@ -94,3 +94,7 @@ OCI 자원 비용은 배포자 부담입니다. VM/부트 볼륨 삭제 전에 �
 독립 작성 코드·테스트·문서는 [MIT License](LICENSE), Copyright (c) 2026 AndyPandi를 적용합니다. 외부 이미지·패키지·상표는 별도이며 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)를 확인하세요.
 
 보안·업그레이드 전에 [SECURITY.md](SECURITY.md)를 확인하세요. 관리자 SSH 개인키를 참여자에게 공유하지 말고 개별 회수 가능한 제한 접근을 마련하세요. 신규 DB는 bootstrap 관리자와 최소권한 앱 계정을 분리합니다. 기존 설치는 자동 전환하지 않으며 별도 유지보수 절차가 필요합니다. PostgreSQL/Mattermost 실제 런타임 검증은 남아 있습니다. digest 고정은 동적 OS/RPM 선택이나 취약점 부재를 보장하지 않습니다. 테스트는 자체 프로젝트 계약 검사이며 Oracle 공식 schema 검증이 아닙니다.
+
+## IMDSv2 전용 메타데이터
+
+인스턴스는 `instance_options.are_legacy_imds_endpoints_disabled = true`로 IMDSv1을 차단하며 opt-out은 없다. GitHub 갱신만으로 기존 스택/VM은 바뀌지 않는다. 최신 구성을 스택에 업로드하고 기존 입력을 유지한 채 **Plan 전체를 검토한 뒤 Apply**한다. OCI provider 7.22.0에서 이 옵션은 in-place update 대상이지만 최신 OL9 이미지 선택 등 다른 drift로 인한 교체까지 배제하지 않는다. [영향 검토와 읽기 전용 확인 명령](SECURITY.md#imds-v2-only)을 참고한다.
